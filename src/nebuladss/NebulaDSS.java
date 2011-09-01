@@ -60,5 +60,7 @@ public class NebulaDSS implements ProgramConstants {
         aTomP2P.setListenPort(nd_DhtPortInt);
 
         //start jetty with servlets that accept GET/POST for file management
+
+        //wait for "Enter" to shutdown service
     }
 }
