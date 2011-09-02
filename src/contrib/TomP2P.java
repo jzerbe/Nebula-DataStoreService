@@ -7,10 +7,11 @@ package contrib;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
-import java.util.HashMap;
+import java.util.ArrayList;
 import java.util.Random;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import nebuladss.MasterServer;
 import nebuladss.ProgramConstants;
 import net.tomp2p.futures.FutureBootstrap;
 import net.tomp2p.p2p.Peer;
@@ -46,16 +47,18 @@ public class TomP2P implements ProgramConstants {
      */
     public void start() {
         startListen();
-        HashMap<String, Integer> someBootStrapNodes = null; //TODO: get boostrap nodes from webservice
-        bootStrap(someBootStrapNodes);
-        //TODO: ping webservice that this node is in the network
+        boolean isBootStrapped = false;
+        do {
+            isBootStrapped = bootStrap(MasterServer.getInstance().getBootstrapNodes());
+        } while (!isBootStrapped);
+        MasterServer.getInstance().addSelf();
     }
 
     /**
      * stop the TomP2P DHT network connection
      */
     public void stop() {
-        //TODO: ping webservice that this node is going down
+        MasterServer.getInstance().removeSelf();
         stopListen();
     }
 
@@ -113,10 +116,10 @@ public class TomP2P implements ProgramConstants {
         try {
             weupnp.getInstance().removePortMapping("UDP", tp_ListenPortInt);
         } catch (IOException ex) {
-            Logger.getLogger(TomP2P.class.getName()).log(Level.SEVERE, null, ex);
+            Logger.getLogger(TomP2P.class.getName()).log(Level.WARNING, null, ex);
             return false;
         } catch (SAXException ex) {
-            Logger.getLogger(TomP2P.class.getName()).log(Level.SEVERE, null, ex);
+            Logger.getLogger(TomP2P.class.getName()).log(Level.WARNING, null, ex);
             return false;
         }
 
@@ -124,10 +127,10 @@ public class TomP2P implements ProgramConstants {
         try {
             weupnp.getInstance().removePortMapping("TCP", tp_ListenPortInt);
         } catch (IOException ex) {
-            Logger.getLogger(TomP2P.class.getName()).log(Level.SEVERE, null, ex);
+            Logger.getLogger(TomP2P.class.getName()).log(Level.WARNING, null, ex);
             return false;
         } catch (SAXException ex) {
-            Logger.getLogger(TomP2P.class.getName()).log(Level.SEVERE, null, ex);
+            Logger.getLogger(TomP2P.class.getName()).log(Level.WARNING, null, ex);
             return false;
         }
 
@@ -137,12 +140,13 @@ public class TomP2P implements ProgramConstants {
 
     /**
      * get this local node into the existing TomP2P network
-     * @param theBootStrapNodes HashMap<String, Integer>
+     * @param theBootStrapNodes ArrayList<String>
      * @return boolean - were we able to bootstrap into the network?
      */
-    protected boolean bootStrap(HashMap<String, Integer> theBootStrapNodes) {
-        for (String aNodeAdress : theBootStrapNodes.keySet()) {
-            InetSocketAddress aISA = new InetSocketAddress(aNodeAdress, theBootStrapNodes.get(aNodeAdress));
+    protected boolean bootStrap(ArrayList<String> theBootStrapNodes) {
+        for (String aNodeAdress : theBootStrapNodes) {
+            String[] aNodeAddressArray = aNodeAdress.split(":");
+            InetSocketAddress aISA = new InetSocketAddress(aNodeAddressArray[0], Integer.valueOf(aNodeAddressArray[1]));
             FutureBootstrap aFutureBootstrap = tp_Peer.bootstrap(aISA); //pings the UDP socket of aISA
             aFutureBootstrap.awaitUninterruptibly();
             if (aFutureBootstrap.isSuccess()) {
@@ -160,5 +164,13 @@ public class TomP2P implements ProgramConstants {
      */
     public void setListenPort(int thePortInt) {
         tp_ListenPortInt = thePortInt;
+    }
+
+    public int getActualUDPPortInt() {
+        return tc_ActualUDPPortInt;
+    }
+
+    public int getActualTCPPortInt() {
+        return tc_ActualTCPPortInt;
     }
 }

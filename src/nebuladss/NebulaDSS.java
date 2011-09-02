@@ -50,14 +50,14 @@ public class NebulaDSS implements ProgramConstants {
             }
         } //done processing arguments
 
-        //get bootstrap nodes from webcache via nodemanger (singleton)
+        //set bootstrap master server URL
         MasterServer aMasterServer = MasterServer.getInstance();
         aMasterServer.setMasterSeverUrlStr(nd_MasterServerUrlStr);
-        String[] someBootStrapNodes = aMasterServer.getBootstrapNodes();
 
-        //start tomp2p with given bootstrap nodes
+        //start tomp2p and bootstrap
         TomP2P aTomP2P = TomP2P.getInstance();
         aTomP2P.setListenPort(nd_DhtPortInt);
+        aTomP2P.start();
 
         //start jetty with servlets that accept GET/POST for file management
 
