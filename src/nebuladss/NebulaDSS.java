@@ -3,6 +3,7 @@
  */
 package nebuladss;
 
+import contrib.JettyWebServer;
 import contrib.TomP2P;
 
 /**
@@ -60,6 +61,8 @@ public class NebulaDSS implements ProgramConstants {
         aTomP2P.start();
 
         //start jetty with servlets that accept GET/POST for file management
+        JettyWebServer aJettyWebServer = JettyWebServer.getInstance(nd_HttpPortInt);
+        aJettyWebServer.startServer();
 
         //wait for "Enter" to shutdown service
     }
