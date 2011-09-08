@@ -38,7 +38,7 @@ public class JettyWebServer implements ProgramConstants {
         } catch (IOException ex) {
             Logger.getLogger(JettyWebServer.class.getName()).log(Level.SEVERE, null, ex);
         }
-        webAppContext.addServlet(new ServletHolder(new FileManager()), "/servlets/filemanager");
+        webAppContext.addServlet(new ServletHolder(new FileManager()), "/files");
         jws_serverInstance.addHandler(webAppContext);
     }
 

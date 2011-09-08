@@ -28,4 +28,6 @@ public interface ProgramConstants {
     public static final int kWebAppDefaultPortInt = 2020;
     //master server stuffs
     public static final String kMasterServerBaseUrlStr = "http://www-users.cs.umn.edu/~zerbe/nebula_dss/webcache/";
+    //dss operation types used in HTTP operation param
+    public static enum enumOperationType {GET, PUT, DELETE};
 }

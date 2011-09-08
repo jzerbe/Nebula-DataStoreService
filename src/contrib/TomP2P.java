@@ -16,6 +16,8 @@ import nebuladss.ProgramConstants;
 import net.tomp2p.futures.FutureBootstrap;
 import net.tomp2p.p2p.Peer;
 import net.tomp2p.peers.Number160;
+import net.tomp2p.peers.ShortString;
+import net.tomp2p.storage.Data;
 import org.xml.sax.SAXException;
 
 /**
@@ -25,13 +27,14 @@ import org.xml.sax.SAXException;
 public class TomP2P implements ProgramConstants {
 
     private static TomP2P tp_singleInstance = null;
+    private Random rnd = null;
     private Peer tp_Peer = null;
     private int tp_ListenPortInt = kDhtDefaultPortInt;
     private int tc_ActualTCPPortInt = 0;
     private int tc_ActualUDPPortInt = 0;
 
     protected TomP2P() {
-        Random rnd = new Random();
+        rnd = new Random(42L);
         tp_Peer = new Peer(new Number160(rnd));
     }
 
@@ -40,6 +43,16 @@ public class TomP2P implements ProgramConstants {
             tp_singleInstance = new TomP2P();
         }
         return tp_singleInstance;
+    }
+
+    /**
+     * create an entry in the TomP2P MMT given a key string and byte array
+     * @param theKeyStr String
+     * @param theByteValue byte[]
+     */
+    public void put(String theKeyStr, byte[] theByteValue) {
+        Data aData = new Data(theByteValue);
+        tp_Peer.put(new Number160(new ShortString(theKeyStr)), aData);
     }
 
     /**
