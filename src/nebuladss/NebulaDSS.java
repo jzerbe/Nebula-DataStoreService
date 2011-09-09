@@ -64,6 +64,7 @@ public class NebulaDSS implements ProgramConstants {
         JettyWebServer aJettyWebServer = JettyWebServer.getInstance(nd_HttpPortInt);
         aJettyWebServer.startServer();
 
-        //wait for "Enter" to shutdown service
+        //open up control console
+        //for more: http://www.javapractices.com/topic/TopicAction.do?Id=79
     }
 }

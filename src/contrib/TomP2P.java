@@ -14,9 +14,9 @@ import java.util.logging.Logger;
 import nebuladss.MasterServer;
 import nebuladss.ProgramConstants;
 import net.tomp2p.futures.FutureBootstrap;
+import net.tomp2p.futures.FutureDHT;
 import net.tomp2p.p2p.Peer;
 import net.tomp2p.peers.Number160;
-import net.tomp2p.peers.ShortString;
 import net.tomp2p.storage.Data;
 import org.xml.sax.SAXException;
 
@@ -32,10 +32,12 @@ public class TomP2P implements ProgramConstants {
     private int tp_ListenPortInt = kDhtDefaultPortInt;
     private int tc_ActualTCPPortInt = 0;
     private int tc_ActualUDPPortInt = 0;
+    private boolean tc_IsConnected = false;
 
     protected TomP2P() {
         rnd = new Random(42L);
         tp_Peer = new Peer(new Number160(rnd));
+        tp_Peer.setDefaultStorageReplication(); //use Indirect Replication
     }
 
     public static TomP2P getInstance() {
@@ -46,13 +48,39 @@ public class TomP2P implements ProgramConstants {
     }
 
     /**
-     * create an entry in the TomP2P MMT given a key string and byte array
+     * get a byte array of data back from TomP2P MMT using certain key string
+     * @param theKeyStr String
+     * @return byte[]
+     */
+    public byte[] get(String theKeyStr) {
+        if (!tc_IsConnected) {
+            return null;
+        }
+
+        FutureDHT aFutureDHT = tp_Peer.get(Number160.createHash(theKeyStr));
+        aFutureDHT.awaitUninterruptibly();
+        if (aFutureDHT.isSuccess()) {
+            return aFutureDHT.getData().values().iterator().next().getData();
+        } else {
+            return null;
+        }
+    }
+
+    /**
+     * put a <String, byte[]> key-value pair into the TomP2P MMT
      * @param theKeyStr String
      * @param theByteValue byte[]
+     * @return boolean - did the put succeed?
      */
-    public void put(String theKeyStr, byte[] theByteValue) {
-        Data aData = new Data(theByteValue);
-        tp_Peer.put(new Number160(new ShortString(theKeyStr)), aData);
+    public boolean put(String theKeyStr, byte[] theByteValue) {
+        if (!tc_IsConnected) {
+            return false;
+        }
+
+        FutureDHT aFutureDHT = tp_Peer.put(Number160.createHash(theKeyStr),
+                new Data(theByteValue));
+        aFutureDHT.awaitUninterruptibly();
+        return aFutureDHT.isSuccess();
     }
 
     /**
@@ -64,6 +92,7 @@ public class TomP2P implements ProgramConstants {
         do {
             isBootStrapped = bootStrap(MasterServer.getInstance().getBootstrapNodes());
         } while (!isBootStrapped);
+        tc_IsConnected = true;
         MasterServer.getInstance().addSelf();
     }
 
@@ -72,6 +101,7 @@ public class TomP2P implements ProgramConstants {
      */
     public void stop() {
         MasterServer.getInstance().removeSelf();
+        tc_IsConnected = false;
         stopListen();
     }
 
@@ -173,6 +203,9 @@ public class TomP2P implements ProgramConstants {
      * set the suggested port to listen on. this may not be the port that the
      * UDP and TCP sockets end up listening on, depending on if said ports are
      * open to be forwarded through the UPnP gateway device (if there is one)
+     * 
+     * will take affect on restart
+     * 
      * @param thePortInt Integer - the port number suggestion
      */
     public void setListenPort(int thePortInt) {
