@@ -7,8 +7,21 @@ package nebuladss;
 /**
  * @author Jason Zerbe
  */
-public class FileProcessor {
+public class FileProcessor implements ProgramConstants {
 
-    public FileProcessor() {
+    protected String fp_BaseFileNameStr = null;
+
+    public FileProcessor(String theBaseFileNameStr) {
+        fp_BaseFileNameStr = theBaseFileNameStr;
+    }
+
+    public void combineFile() {
+    }
+
+    public void splitFile(int theChunkByteSize) {
+    }
+
+    public void splitFile() {
+        splitFile(kDefaultFileChunkByteSize);
     }
 }

@@ -27,12 +27,12 @@ import org.xml.sax.SAXException;
 public class TomP2P implements ProgramConstants {
 
     private static TomP2P tp_singleInstance = null;
-    private Random rnd = null;
-    private Peer tp_Peer = null;
-    private int tp_ListenPortInt = kDhtDefaultPortInt;
-    private int tc_ActualTCPPortInt = 0;
-    private int tc_ActualUDPPortInt = 0;
-    private boolean tc_IsConnected = false;
+    protected Random rnd = null;
+    protected Peer tp_Peer = null;
+    protected int tp_ListenPortInt = kDhtDefaultPortInt;
+    protected int tc_ActualTCPPortInt = 0;
+    protected int tc_ActualUDPPortInt = 0;
+    protected boolean tc_IsConnected = false;
 
     protected TomP2P() {
         rnd = new Random(42L);
@@ -45,6 +45,25 @@ public class TomP2P implements ProgramConstants {
             tp_singleInstance = new TomP2P();
         }
         return tp_singleInstance;
+    }
+
+    /**
+     * delete a value from the TomP2P Multi-Map Table (MMT) based on its key
+     * @param theKeyStr String
+     * @return boolean - did the delete work?
+     */
+    public boolean delete(String theKeyStr) {
+        if (!tc_IsConnected) {
+            return false;
+        }
+
+        FutureDHT aFutureDHT = tp_Peer.remove(Number160.createHash(theKeyStr));
+        aFutureDHT.awaitUninterruptibly();
+        if (aFutureDHT.isFailed()) {
+            return false;
+        }
+
+        return true;
     }
 
     /**

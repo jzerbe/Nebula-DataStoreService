@@ -22,7 +22,7 @@ import java.util.logging.Logger;
 public class MasterServer implements ProgramConstants {
 
     private static MasterServer ms_singleInstance = null;
-    private String ms_theServerUrlStr = kMasterServerBaseUrlStr;
+    protected String ms_theServerUrlStr = kMasterServerBaseUrlStr;
 
     protected MasterServer() {
     }

@@ -23,7 +23,7 @@ import org.xml.sax.SAXException;
 public class weupnp implements ProgramConstants {
 
     private static weupnp wu_singleInstance = null;
-    private GatewayDevice wu_GatewayDevice = null;
+    protected GatewayDevice wu_GatewayDevice = null;
 
     protected weupnp() {
         GatewayDiscover discover = new GatewayDiscover();

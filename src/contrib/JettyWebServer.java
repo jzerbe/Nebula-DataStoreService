@@ -44,7 +44,7 @@ public class JettyWebServer implements ProgramConstants {
 
     public static JettyWebServer getInstance() {
         if (jws_SingleInstance == null) {
-            jws_SingleInstance = new JettyWebServer(80);
+            jws_SingleInstance = new JettyWebServer(kWebAppDefaultPortInt);
         }
         return jws_SingleInstance;
     }

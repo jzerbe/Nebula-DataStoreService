@@ -4,6 +4,7 @@
  */
 package servlets;
 
+import contrib.TomP2P;
 import java.io.File;
 import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
@@ -19,30 +20,39 @@ public class FileManager extends HttpServlet {
     }
 
     /**
-     * check if the file to be uploaded already exists in the network
-     * @param theFile File
+     * check if the name of the file already exists in the network
+     * @param theFileNameStr String
      * @return boolean - does the file exist?
      */
-    boolean fileExists(File theFile) {
-        if (theFile.exists()) {
+    protected boolean fileExistsInNetwork(String theFileNameStr) {
+        if (TomP2P.getInstance().get(theFileNameStr) == null) {
+            return false;
+        } else {
             return true;
         }
-        //TODO: check the Kademlia network for the file
-        return false;
     }
 
+    //TODO: make sure setStatus aligns with intentions
     @Override
     protected void doPost(HttpServletRequest req, HttpServletResponse resp) {
         String aOperationString = req.getParameter("operation");
         if (aOperationString.equals(enumOperationType.GET.toString())) {
             String aFileStr = req.getParameter("file");
-            //get file pieces from TomP2P MMT
+            if (!fileExistsInNetwork(aFileStr)) {
+                resp.setStatus(404);
+            } else {
+                //get file pieces from TomP2P MMT
+            }
         } else if (aOperationString.equals(enumOperationType.PUT.toString())) {
             File aFileUpload = (File) req.getAttribute("file");
-            //break file into pieces and push into TomP2P
+            if ((aFileUpload == null) || fileExistsInNetwork(aFileUpload.getName())) {
+                resp.setStatus(403);
+            } else {
+                //break file into pieces and push into TomP2P
+            }
         } else if (aOperationString.equals(enumOperationType.DELETE.toString())) {
             String aFileStr = req.getParameter("file");
-            //replace file with expire flags on all MMT nodes
+            TomP2P.getInstance().delete(aFileStr);
         }
     }
 }

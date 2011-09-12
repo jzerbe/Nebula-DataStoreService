@@ -30,4 +30,6 @@ public interface ProgramConstants {
     public static final String kMasterServerBaseUrlStr = "http://www-users.cs.umn.edu/~zerbe/nebula_dss/webcache/";
     //dss operation types used in HTTP operation param
     public static enum enumOperationType {GET, PUT, DELETE};
+    //file processing
+    public static final int kDefaultFileChunkByteSize = (256 * 1024); //256kbytes
 }
