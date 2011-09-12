@@ -9,12 +9,16 @@ import java.io.File;
 import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
+import nebuladss.ProgramConstants;
 import nebuladss.ProgramConstants.enumOperationType;
 
 /**
+ * handles POST requests for PUT, GET, DELETE file operations
+ * handles GET requests for GET file operation
+ * 
  * @author Jason Zerbe
  */
-public class FileManager extends HttpServlet {
+public class FileManager extends HttpServlet implements ProgramConstants {
 
     public FileManager() {
     }
@@ -32,7 +36,6 @@ public class FileManager extends HttpServlet {
         }
     }
 
-    //TODO: make sure setStatus aligns with intentions
     @Override
     protected void doPost(HttpServletRequest req, HttpServletResponse resp) {
         String aOperationString = req.getParameter("operation");
@@ -53,6 +56,19 @@ public class FileManager extends HttpServlet {
         } else if (aOperationString.equals(enumOperationType.DELETE.toString())) {
             String aFileStr = req.getParameter("file");
             TomP2P.getInstance().delete(aFileStr);
+        }
+    }
+
+    @Override
+    protected void doGet(HttpServletRequest req, HttpServletResponse resp) {
+        String aOperationString = req.getParameter("operation");
+        if (aOperationString.equals(enumOperationType.GET.toString())) {
+            String aFileStr = req.getParameter("file");
+            if (!fileExistsInNetwork(aFileStr)) {
+                resp.setStatus(404);
+            } else {
+                //get file pieces from TomP2P MMT
+            }
         }
     }
 }

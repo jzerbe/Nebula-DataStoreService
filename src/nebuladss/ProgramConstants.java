@@ -32,4 +32,5 @@ public interface ProgramConstants {
     public static enum enumOperationType {GET, PUT, DELETE};
     //file processing
     public static final int kDefaultFileChunkByteSize = (256 * 1024); //256kbytes
+    public static final String kFilePiecesNameSplitStr = "||";
 }
