@@ -39,14 +39,7 @@ public class FileManager extends HttpServlet implements ProgramConstants {
     @Override
     protected void doPost(HttpServletRequest req, HttpServletResponse resp) {
         String aOperationString = req.getParameter("operation");
-        if (aOperationString.equals(enumOperationType.GET.toString())) {
-            String aFileStr = req.getParameter("file");
-            if (!fileExistsInNetwork(aFileStr)) {
-                resp.setStatus(404);
-            } else {
-                //get file pieces from TomP2P MMT
-            }
-        } else if (aOperationString.equals(enumOperationType.PUT.toString())) {
+        if (aOperationString.equals(enumOperationType.PUT.toString())) {
             File aFileUpload = (File) req.getAttribute("file");
             if ((aFileUpload == null) || fileExistsInNetwork(aFileUpload.getName())) {
                 resp.setStatus(403);

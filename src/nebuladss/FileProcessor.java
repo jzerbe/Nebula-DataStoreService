@@ -19,13 +19,20 @@ public class FileProcessor implements ProgramConstants {
         fp_BaseFileNameStr = theBaseFileNameStr;
     }
 
-    public void combineFile() {
+    public byte[] getFile() {
+        return null;
     }
 
-    public void splitFile(int theChunkByteSize) {
+    public void putFile(byte[] theFileBytes) {
     }
 
-    public void splitFile() {
+    protected void combineFile() {
+    }
+
+    protected void splitFile(int theChunkByteSize) {
+    }
+
+    protected void splitFile() {
         splitFile(kDefaultFileChunkByteSize);
     }
 
