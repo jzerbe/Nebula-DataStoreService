@@ -4,7 +4,7 @@
  */
 package servlets;
 
-import contrib.TomP2P;
+import contrib.TomP2P.TomP2P;
 import java.io.File;
 import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;

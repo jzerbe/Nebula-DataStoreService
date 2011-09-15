@@ -4,7 +4,7 @@
  */
 package nebuladss;
 
-import contrib.TomP2P;
+import contrib.TomP2P.TomP2P;
 import java.util.ArrayList;
 import java.util.Arrays;
 
@@ -20,6 +20,7 @@ public class FileProcessor implements ProgramConstants {
     }
 
     public byte[] getFile() {
+        ArrayList<String> aFilePiecesList = getFilePiecesList(fp_BaseFileNameStr);
         return null;
     }
 

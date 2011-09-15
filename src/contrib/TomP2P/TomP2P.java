@@ -3,8 +3,9 @@
  * TomP2P is a DMM - distributed multi-map for mapping keys to multiple values
  * with its underpinnings based almost entirely on the Kademlia spec
  */
-package contrib;
+package contrib.TomP2P;
 
+import contrib.weupnp;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.util.ArrayList;
@@ -15,7 +16,6 @@ import nebuladss.MasterServer;
 import nebuladss.ProgramConstants;
 import net.tomp2p.futures.FutureBootstrap;
 import net.tomp2p.futures.FutureDHT;
-import net.tomp2p.p2p.Peer;
 import net.tomp2p.peers.Number160;
 import net.tomp2p.storage.Data;
 import org.xml.sax.SAXException;
@@ -28,7 +28,7 @@ public class TomP2P implements ProgramConstants {
 
     private static TomP2P tp_singleInstance = null;
     protected Random rnd = null;
-    protected Peer tp_Peer = null;
+    protected DiskPeer tp_Peer = null;
     protected int tp_ListenPortInt = kDhtDefaultPortInt;
     protected int tc_ActualTCPPortInt = 0;
     protected int tc_ActualUDPPortInt = 0;
@@ -36,7 +36,7 @@ public class TomP2P implements ProgramConstants {
 
     protected TomP2P() {
         rnd = new Random(42L);
-        tp_Peer = new Peer(new Number160(rnd));
+        tp_Peer = new DiskPeer(new Number160(rnd));
         tp_Peer.setDefaultStorageReplication(); //use Indirect Replication
     }
 

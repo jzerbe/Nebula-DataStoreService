@@ -5,7 +5,7 @@
  */
 package nebuladss;
 
-import contrib.TomP2P;
+import contrib.TomP2P.TomP2P;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;

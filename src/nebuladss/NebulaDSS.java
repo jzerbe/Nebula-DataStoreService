@@ -4,7 +4,7 @@
 package nebuladss;
 
 import contrib.JettyWebServer;
-import contrib.TomP2P;
+import contrib.TomP2P.TomP2P;
 
 /**
  * @author Jason Zerbe
