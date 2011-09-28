@@ -1,8 +1,8 @@
 <?php
 
 /**
- * master server script for bootstrapping TomP2P DMM network nodes
- * keeps a record of the latest nodes that are up. run on your
+ * master server script for bootstrapping NebulaDSS network nodes
+ * keeps a record of all the node uptime sessions. run on your
  * standard PHP5 and SQLite3 or MySQL compatible webserver
  *
  * if you are using MySQL be sure to create the database and give
@@ -27,7 +27,7 @@ $kDbHost = "localhost"; //not needed for SQLite3
 $kDbUser = "NebulaDSS"; //not needed for SQLite3
 $kDbPass = "NebulaDSS"; //not needed for SQLite3
 $kDbName = "NebulaDSS";
-$kDbTable = "bootstrap";
+$kDbTable = "Nodes";
 
 //configure the output
 $kDebugIsOn = true;
@@ -39,6 +39,10 @@ $GlobalSqlResource = false;
 $kOperationBootStrap = 'bootstrap';
 $kOperationPing = 'ping';
 
+//API and database column names
+$kDssPort = 'dssport';
+$kWebPort = '';
+
 if (isset($_GET['opt']) && ($_GET['opt'] != '')) {
     $opt = $_GET['opt'];
     if ($opt == $kOperationBootStrap) {
@@ -46,16 +50,16 @@ if (isset($_GET['opt']) && ($_GET['opt'] != '')) {
         getBootStrapNodes();
         close();
     } elseif ($opt == $kOperationPing) {
-        if ((isset($_GET['udpport']) && ($_GET['udpport'] != ''))
-                && (isset($_GET['tcpport']) && ($_GET['tcpport'] != ''))) {
+        if ((isset($_GET[$kDssPort]) && ($_GET[$kDssPort] != ''))
+                && (isset($_GET[$kWebPort]) && ($_GET[$kWebPort] != ''))) {
             $address = $_SERVER["REMOTE_ADDR"];
-            $udpport = $_GET['udpport'];
-            $tcpport = $_GET['tcpport'];
+            $aDssPort = $_GET[$kDssPort];
+            $aWebPort = $_GET[$kWebPort];
             open();
             if (isset($_GET['remove']) && ($_GET['remove'] != '')) { //remove ping entry
                 removeBootStrapNode($address);
             } else { //add host entry
-                addBootStrapNode($address, $udpport, $tcpport);
+                addBootStrapNode($address, $aDssPort, $aWebPort);
             }
             close();
         }
@@ -87,22 +91,22 @@ function getBootStrapNodes() {
         while ($row = $results->fetchArray(SQLITE3_ASSOC)) {
             if (!isset($row['address']))
                 continue;
-            echo $row['address'] . ':' . $row['udpport'] . "\n";
+            echo $row['address'] . ':' . $row[$kDssPort] . "\n";
         }
     } elseif ($kDbType == DbType::MySQL) {
         $results = mysql_query($aSqlStr, $GlobalSqlResource) or die(mysql_errno($GlobalSqlResource));
         while ($row = mysql_fetch_array($result, MYSQL_ASSOC)) {
             if (!isset($row['address']))
                 continue;
-            echo $row['address'] . ':' . $row['udpport'] . "\n";
+            echo $row['address'] . ':' . $row[$kDssPort] . "\n";
         }
     }
 }
 
 //insert address and ports into database
-function addBootStrapNode($address, $udpport, $tcpport) {
+function addBootStrapNode($address, $aDssPort, $aWebPort) {
     global $kDbType, $GlobalSqlResource, $kDbTable;
-    $aSqlStr = "INSERT INTO $kDbTable VALUES(NULL, $udpport, $tcpport, $address)";
+    $aSqlStr = "INSERT INTO $kDbTable VALUES(NULL, $aDssPort, $aWebPort, $address)";
     if ($kDbType == DbType::SQLite3) {
         $GlobalSqlResource->exec($aSqlStr);
     } elseif ($kDbType == DbType::MySQL) {

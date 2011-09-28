@@ -4,14 +4,13 @@
 package nebuladss;
 
 import contrib.JettyWebServer;
-import contrib.TomP2P.TomP2P;
 
 /**
  * @author Jason Zerbe
  */
 public class NebulaDSS implements ProgramConstants {
 
-    private static int nd_DhtPortInt = kDhtDefaultPortInt;
+    private static int nd_DssPortInt = kDssDefaultPortInt;
     private static int nd_HttpPortInt = kWebAppDefaultPortInt;
     private static String nd_MasterServerUrlStr = kMasterServerBaseUrlStr;
 
@@ -23,8 +22,8 @@ public class NebulaDSS implements ProgramConstants {
         String[] currentArgArray = theCurrentArg.split(kArgumentSplit);
         String currentArgStr = currentArgArray[(currentArgArray.length - 1)];
         if ((currentArgStr != null) && (!currentArgStr.isEmpty())) {
-            if (theCurrentArg.contains(kDhtArgStr)) {
-                nd_DhtPortInt = Integer.valueOf(currentArgStr);
+            if (theCurrentArg.contains(kDssArgStr)) {
+                nd_DssPortInt = Integer.valueOf(currentArgStr);
             } else if (theCurrentArg.contains(kHttpArgStr)) {
                 nd_HttpPortInt = Integer.valueOf(currentArgStr);
             } else if (theCurrentArg.contains(kMasterServerArgStr)) {
@@ -42,7 +41,7 @@ public class NebulaDSS implements ProgramConstants {
             if (currentArg.contains("-h")) {
                 System.out.println(kUsageStr);
                 System.exit(0);
-            } else if (currentArg.contains(kDhtArgStr)) {
+            } else if (currentArg.contains(kDssArgStr)) {
                 setGlobalValues(currentArg);
             } else if (currentArg.contains(kHttpArgStr)) {
                 setGlobalValues(currentArg);
@@ -55,14 +54,11 @@ public class NebulaDSS implements ProgramConstants {
         MasterServer aMasterServer = MasterServer.getInstance();
         aMasterServer.setMasterSeverUrlStr(nd_MasterServerUrlStr);
 
-        //start tomp2p and bootstrap
-        TomP2P aTomP2P = TomP2P.getInstance();
-        aTomP2P.setListenPort(nd_DhtPortInt);
-        aTomP2P.start();
-
         //start jetty with servlets that accept GET/POST for file management
         JettyWebServer aJettyWebServer = JettyWebServer.getInstance(nd_HttpPortInt);
         aJettyWebServer.startServer();
+        
+        //tell master server about self - HTTP and Dss control port
 
         //open up control console
         //for more: http://www.javapractices.com/topic/TopicAction.do?Id=79

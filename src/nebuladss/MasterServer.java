@@ -5,7 +5,6 @@
  */
 package nebuladss;
 
-import contrib.TomP2P.TomP2P;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
@@ -35,7 +34,7 @@ public class MasterServer implements ProgramConstants {
     }
 
     /**
-     * add this node to the master server's bootstrap list
+     * add this node to the master server's list of up nodes
      * @return boolean - was this node added properly?
      */
     public boolean addSelf() {
@@ -46,7 +45,7 @@ public class MasterServer implements ProgramConstants {
     }
 
     /**
-     * remove this node from the bootstrap list on the master server
+     * remove this node from the list on the master server of available nodes
      * @return boolean - was this node successfully removed?
      */
     public boolean removeSelf() {
