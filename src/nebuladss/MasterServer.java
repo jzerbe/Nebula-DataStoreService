@@ -1,7 +1,6 @@
 /*
- * singleton class for interfacing with the master server: used in getting
- * boostrap nodes and pinging said master server over HTTP that this node
- * is up
+ * singleton class for interfacing with the master server: used in  pinging 
+ * master server over HTTP that this node is up
  */
 package nebuladss;
 
@@ -35,76 +34,70 @@ public class MasterServer implements ProgramConstants {
 
     /**
      * add this node to the master server's list of up nodes
+     * @param theHttpPortNumber Integer
      * @return boolean - was this node added properly?
      */
-    public boolean addSelf() {
+    public boolean addSelf(int theHttpPortNumber) {
         String aURLConnectionParamStr = "opt=ping"
-                + "&udpport=" + TomP2P.getInstance().getActualUDPPortInt()
-                + "&tcpport=" + TomP2P.getInstance().getActualTCPPortInt();
+                + "&http=" + theHttpPortNumber;
         return voidServerMethod(aURLConnectionParamStr);
     }
 
     /**
      * remove this node from the list on the master server of available nodes
+     * @param theHttpPortNumber Integer
      * @return boolean - was this node successfully removed?
      */
-    public boolean removeSelf() {
+    public boolean removeSelf(int theHttpPortNumber) {
         String aURLConnectionParamStr = "opt=ping"
-                + "&udpport=" + TomP2P.getInstance().getActualUDPPortInt()
-                + "&tcpport=" + TomP2P.getInstance().getActualTCPPortInt()
+                + "&http=" + theHttpPortNumber
                 + "&remove=true";
         return voidServerMethod(aURLConnectionParamStr);
     }
 
     /**
-     * internal method for doing a POST with what should be a void response
+     * internal method for doing a GET with what should be a void response
      * @param aURLConnectionParamStr String
      * @return boolean - was there a local or server side error?
      */
     protected boolean voidServerMethod(String aURLConnectionParamStr) {
+        ArrayList<String> returnArrayList = returnServerMethod(aURLConnectionParamStr);
+        if ((returnArrayList != null) && (returnArrayList.size() > 1)) {
+            return false;
+        } else {
+            return true;
+        }
+    }
+
+    /**
+     * retrieves a list of file URL locations from the master server in
+     * order of latency(1) and bandwidth(2) descending
+     * @param theNameSpace String
+     * @param theFileName String
+     * @param theMaxMillisecondLatency Integer
+     * @param theMinMbpsBandwidth Integer
+     * @return ArrayList<String> - the list of URL locations
+     */
+    public ArrayList<String> getFileUrlList(String theNameSpace, String theFileName,
+            int theMaxMillisecondLatency, int theMinMbpsBandwidth) {
+        String aURLConnectionParamStr = "opt=get" + "&filename=" + theFileName
+                + "&namespace=" + theNameSpace
+                + "&latency_max=" + String.valueOf(theMaxMillisecondLatency)
+                + "&bandwidth_min=" + String.valueOf(theMinMbpsBandwidth);
+        ArrayList<String> returnArrayList = returnServerMethod(aURLConnectionParamStr);
+        return returnArrayList;
+    }
+
+    /**
+     * internal method for doing a GET with response retrieval
+     * @param aURLConnectionParamStr String
+     * @return ArrayList<String>
+     */
+    protected ArrayList<String> returnServerMethod(String aURLConnectionParamStr) {
         //create the HTTP buffered reader
         BufferedReader aBufferedReader = null;
         try {
             aBufferedReader = new BufferedReader(new InputStreamReader(getURLConnection(aURLConnectionParamStr).getInputStream()));
-        } catch (IOException ex) {
-            Logger.getLogger(MasterServer.class.getName()).log(Level.SEVERE, null, ex);
-            return false;
-        }
-
-        //read from the HTTP stream
-        ArrayList<String> returnArrayList = new ArrayList();
-        try {
-            String aString = null;
-            while ((aString = aBufferedReader.readLine()) != null) {
-                returnArrayList.add(aString);
-            }
-            if (returnArrayList.size() > 1) {
-                return false;
-            }
-        } catch (IOException ex) {
-            Logger.getLogger(MasterServer.class.getName()).log(Level.SEVERE, null, ex);
-            return false;
-        }
-
-        //close up buffered HTTP stream reader
-        try {
-            aBufferedReader.close();
-        } catch (IOException ex) {
-            Logger.getLogger(MasterServer.class.getName()).log(Level.WARNING, null, ex);
-        }
-
-        return true;
-    }
-
-    /**
-     * gets an ArrayList of possible bootstrap addresses to connect to
-     * @return ArrayList<String>
-     */
-    public ArrayList<String> getBootstrapNodes() {
-        //create the HTTP buffered reader
-        BufferedReader aBufferedReader = null;
-        try {
-            aBufferedReader = new BufferedReader(new InputStreamReader(getURLConnection("opt=bootstrap").getInputStream()));
         } catch (IOException ex) {
             Logger.getLogger(MasterServer.class.getName()).log(Level.SEVERE, null, ex);
             return null;

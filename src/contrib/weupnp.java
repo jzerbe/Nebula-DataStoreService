@@ -56,6 +56,7 @@ public class weupnp implements ProgramConstants {
      * suggestion port number
      * @param thePortTypeStr String - "TCP" OR "UDP"
      * @param thePortNumberInt Integer - the port to open up
+     * @param thePortDescription String - description of what we are opening up
      * @return Integer - the port number that was actually mapped
      * @throws IOException
      * @throws SAXException 
