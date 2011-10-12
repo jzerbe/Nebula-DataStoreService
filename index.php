@@ -1,9 +1,9 @@
 <?php
 
 /**
- * master server script for bootstrapping NebulaDSS network nodes
- * keeps a record of all the node uptime sessions. run on your
- * standard PHP5 and SQLite3 or MySQL compatible webserver
+ * master server script for coordinating NebulaDSS network nodes
+ * keeps a record of all the node uptime sessions, locations, latencies
+ * run on your standard PHP5 and SQLite3 or MySQL compatible webserver
  *
  * if you are using MySQL be sure to create the database and give
  * a user read/write permissions to the database
@@ -40,8 +40,8 @@ $kOperationBootStrap = 'bootstrap';
 $kOperationPing = 'ping';
 
 //API and database column names
-$kDssPort = 'dssport';
-$kWebPort = '';
+$kWebStr = 'http';
+$kAddrStr = 'address';
 
 if (isset($_GET['opt']) && ($_GET['opt'] != '')) {
     $opt = $_GET['opt'];
@@ -50,16 +50,14 @@ if (isset($_GET['opt']) && ($_GET['opt'] != '')) {
         getBootStrapNodes();
         close();
     } elseif ($opt == $kOperationPing) {
-        if ((isset($_GET[$kDssPort]) && ($_GET[$kDssPort] != ''))
-                && (isset($_GET[$kWebPort]) && ($_GET[$kWebPort] != ''))) {
+        if (isset($_GET[$kWebStr]) && ($_GET[$kWebStr] != '')) {
             $address = $_SERVER["REMOTE_ADDR"];
-            $aDssPort = $_GET[$kDssPort];
-            $aWebPort = $_GET[$kWebPort];
+            $aWebPort = $_GET[$kWebStr];
             open();
             if (isset($_GET['remove']) && ($_GET['remove'] != '')) { //remove ping entry
                 removeBootStrapNode($address);
             } else { //add host entry
-                addBootStrapNode($address, $aDssPort, $aWebPort);
+                addBootStrapNode($address, $aWebPort);
             }
             close();
         }
@@ -75,7 +73,7 @@ function open() {
     global $kDbType, $GlobalSqlResource, $kDbName, $kDbTable, $kDbHost, $kDbUser, $kDbPass;
     if ($kDbType == DbType::SQLite3) {
         $GlobalSqlResource = new SQLite3($kDbName);
-        $GlobalSqlResource->exec("CREATE TABLE IF NOT EXISTS $kDbTable (id INTEGER PRIMARY KEY ASC, udpport INTEGER, tcpport INTEGER, address TEXT)");
+        $GlobalSqlResource->exec("CREATE TABLE IF NOT EXISTS $kDbTable (id INTEGER PRIMARY KEY ASC, $kWebStr INTEGER, $kAddrStr TEXT)");
     } elseif ($kDbType == DbType::MySQL) {
         $GlobalSqlResource = mysql_connect($kDbHost, $kDbUser, $kDbPass);
         mysql_select_db($kDbName, $GlobalSqlResource);
@@ -85,28 +83,28 @@ function open() {
 //get bootsrap node array from the database
 function getBootStrapNodes() {
     global $kDbType, $GlobalSqlResource, $kDbTable, $kMaxBootStrapNodes;
-    $aSqlStr = "SELECT udpport, address FROM $kDbTable ORDER BY id ASC LIMIT $kMaxBootStrapNodes";
+    $aSqlStr = "SELECT $kAddrStr, $kAddrStr FROM $kDbTable ORDER BY id DESC LIMIT $kMaxBootStrapNodes";
     if ($kDbType == DbType::SQLite3) {
         $results = $GlobalSqlResource->query($aSqlStr);
         while ($row = $results->fetchArray(SQLITE3_ASSOC)) {
-            if (!isset($row['address']))
+            if (!isset($row[$kAddrStr]))
                 continue;
-            echo $row['address'] . ':' . $row[$kDssPort] . "\n";
+            echo $row[$kAddrStr] . ':' . $row[$kWebStr] . "\n";
         }
     } elseif ($kDbType == DbType::MySQL) {
         $results = mysql_query($aSqlStr, $GlobalSqlResource) or die(mysql_errno($GlobalSqlResource));
         while ($row = mysql_fetch_array($result, MYSQL_ASSOC)) {
-            if (!isset($row['address']))
+            if (!isset($row[$kAddrStr]))
                 continue;
-            echo $row['address'] . ':' . $row[$kDssPort] . "\n";
+            echo $row[$kAddrStr] . ':' . $row[$kWebStr] . "\n";
         }
     }
 }
 
 //insert address and ports into database
-function addBootStrapNode($address, $aDssPort, $aWebPort) {
+function addBootStrapNode($address, $aWebPort) {
     global $kDbType, $GlobalSqlResource, $kDbTable;
-    $aSqlStr = "INSERT INTO $kDbTable VALUES(NULL, $aDssPort, $aWebPort, $address)";
+    $aSqlStr = "INSERT INTO $kDbTable VALUES(NULL, $aWebPort, $address)";
     if ($kDbType == DbType::SQLite3) {
         $GlobalSqlResource->exec($aSqlStr);
     } elseif ($kDbType == DbType::MySQL) {
@@ -115,9 +113,9 @@ function addBootStrapNode($address, $aDssPort, $aWebPort) {
 }
 
 //remove a bootstrap node address from the database
-function removeBootStrapNode($address) {
+function removeBootStrapNode($address, $aWebPort) {
     global $kDbType, $GlobalSqlResource, $kDbTable;
-    $aSqlStr = "DELETE FROM $kDbTable WHERE address='$address' LIMIT 1";
+    $aSqlStr = "DELETE FROM $kDbTable WHERE $kAddrStr='$address' AND $kWebStr='$aWebPort' LIMIT 1";
     if ($kDbType == DbType::SQLite3) {
         $GlobalSqlResource->exec($aSqlStr);
     } elseif ($kDbType == DbType::MySQL) {
