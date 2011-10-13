@@ -26,5 +26,12 @@ public class FileManager extends HttpServlet implements ProgramConstants {
 
     @Override
     protected void doGet(HttpServletRequest req, HttpServletResponse resp) {
+        String opt = req.getParameter("opt"); //what are we doing?
+        if ((opt != null) && (!opt.equals(""))) { //non-empty
+            if (opt.equals("get")) {
+                String filename = req.getParameter("filename");
+                String namespace = req.getParameter("namespace");
+            }
+        }
     }
 }
