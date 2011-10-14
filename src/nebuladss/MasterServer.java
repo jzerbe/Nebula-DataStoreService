@@ -20,7 +20,7 @@ import java.util.logging.Logger;
 public class MasterServer implements ProgramConstants {
 
     private static MasterServer ms_singleInstance = null;
-    protected String ms_theServerUrlStr = kMasterServerBaseUrlStr;
+    private String ms_theServerUrlStr = kMasterServerBaseUrlStr;
 
     protected MasterServer() {
     }
@@ -30,6 +30,18 @@ public class MasterServer implements ProgramConstants {
             ms_singleInstance = new MasterServer();
         }
         return ms_singleInstance;
+    }
+
+    /**
+     * tell the master server that this node has the certain file
+     * @param theNameSpace String
+     * @param theFileName String
+     * @return boolean - did contacting the master server work?
+     */
+    public boolean putFile(String theNameSpace, String theFileName) {
+        String aURLConnectionParamStr = "opt=putfile"
+                + "&namespace=" + theNameSpace + "&filename=" + theFileName;
+        return voidServerMethod(aURLConnectionParamStr);
     }
 
     /**
