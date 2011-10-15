@@ -5,7 +5,10 @@ package nebuladss;
 
 import contrib.JettyWebServer;
 import contrib.weupnp;
+import java.io.Console;
 import java.io.IOException;
+import java.text.SimpleDateFormat;
+import java.util.GregorianCalendar;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import org.xml.sax.SAXException;
@@ -76,10 +79,35 @@ public class NebulaDSS implements ProgramConstants {
         JettyWebServer aJettyWebServer = JettyWebServer.getInstance(nd_HttpPortInt);
         aJettyWebServer.startServer();
 
-        //tell master server about self - HTTP port
-        aMasterServer.addSelf(nd_HttpPortInt);
+        //tell master server about HTTP port once ready
+        aMasterServer.setHttpPortNumber(nd_HttpPortInt);
+        aMasterServer.addSelf();
+
+        //echo out what just happened
+        System.out.println("NebulaDSS started with NodeUUID = " + aMasterServer.getUUID() + "\n"
+                + "--http-port=" + String.valueOf(nd_HttpPortInt) + "\n"
+                + "--root-path=" + nd_RootPathStr + "\n"
+                + "--max-mb=" + String.valueOf(nd_MaxSizeMegaBytes) + "\n");
 
         //open up control console
         //for more: http://www.javapractices.com/topic/TopicAction.do?Id=79
+        Console myConsole = System.console();
+        myConsole.printf("type \"q\" at any time to exit");
+        String aUserInputStr = myConsole.readLine("> ");
+        if (aUserInputStr.contains("q")) {
+            aMasterServer.removeSelf();
+            System.exit(0);
+        }
+    }
+
+    /**
+     * get the current date with a certain format
+     * @param theDateFormatStr String
+     * @return String - the date as a string
+     */
+    public static String getFormattedCurrentDate(String theDateFormatStr) {
+        GregorianCalendar aGregorianCalendar = new GregorianCalendar();
+        SimpleDateFormat aSimpleDateFormat = new SimpleDateFormat(theDateFormatStr);
+        return aSimpleDateFormat.format(aGregorianCalendar.getTime());
     }
 }

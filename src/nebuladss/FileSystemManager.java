@@ -20,6 +20,7 @@ public class FileSystemManager {
     private long fsm_kBytesToMegaBytesConstant = 1024 * 1024;
 
     protected FileSystemManager() {
+        fsm_Preferences = Preferences.userNodeForPackage(getClass());
         fsm_MaxAvailableMegaBytes = fsm_Preferences.getLong(fsm_kMaxAvailableMegaBytesKeyStr, fsm_MaxAvailableMegaBytes);
         fsm_StorageRootPathStr = fsm_Preferences.get(fsm_kStorageRootPathStrKey, fsm_StorageRootPathStr);
     }
@@ -31,13 +32,13 @@ public class FileSystemManager {
         return fsm_singleInstance;
     }
 
-    public void putFile(String theNameSpace, String theFileName, File theFileToStore) {
+    public void putFile(String theNameSpace, String theVersionNumber, String theFileName, File theFileToStore) {
         if (getCurrentAvailableMegaBytes() > getMegaBytes(theFileToStore.length())) {
-            String aFileOutputPathStr = getFormattedFilePathStr(fsm_StorageRootPathStr, theNameSpace, theFileName);
+            String aFileOutputPathStr = getFormattedFilePathStr(fsm_StorageRootPathStr, theNameSpace, theVersionNumber, theFileName);
             File aFileOutput = new File(aFileOutputPathStr);
             boolean aFileStoreWorked = theFileToStore.renameTo(aFileOutput);
             if (aFileStoreWorked) {
-                MasterServer.getInstance().putFile(theNameSpace, theFileName);
+                MasterServer.getInstance().putFile(theNameSpace, theFileName, theVersionNumber);
             }
         } else {
             //TODO: push file to other "close" location
@@ -50,11 +51,11 @@ public class FileSystemManager {
      * @param theFileName String
      * @return File
      */
-    public File getFile(String theNameSpace, String theFileName) {
+    public File getFile(String theNameSpace, String theVersionNumber, String theFileName) {
         if ((fsm_StorageRootPathStr == null) || (theNameSpace == null) || (theFileName == null)) {
             return null;
         } else {
-            String aFilePathStr = getFormattedFilePathStr(fsm_StorageRootPathStr, theNameSpace, theFileName);
+            String aFilePathStr = getFormattedFilePathStr(fsm_StorageRootPathStr, theNameSpace, theVersionNumber, theFileName);
             File aFile = new File(aFilePathStr);
             if (aFile.isFile()) {
                 return aFile;
@@ -68,11 +69,14 @@ public class FileSystemManager {
      * helper function for properly formatting the file storage path
      * @param theStorageRootPathStr String
      * @param theNameSpace String
+     * @param theVersionNumber String
      * @param theFileName String
      * @return String
      */
-    protected String getFormattedFilePathStr(String theStorageRootPathStr, String theNameSpace, String theFileName) {
-        return (theStorageRootPathStr + "/" + theNameSpace + "/" + theFileName);
+    protected String getFormattedFilePathStr(String theStorageRootPathStr,
+            String theNameSpace, String theVersionNumber, String theFileName) {
+        return (theStorageRootPathStr + "/" + theNameSpace + "/"
+                + theVersionNumber + "/" + theFileName);
     }
 
     /**

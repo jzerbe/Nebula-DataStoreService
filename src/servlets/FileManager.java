@@ -33,12 +33,14 @@ public class FileManager extends HttpServlet implements ProgramConstants {
         if (aFileUpload != null && aFileUpload.exists() && !aFileUpload.isDirectory()) {
             String filename = req.getParameter("filename");
             String namespace = req.getParameter("namespace");
+            String version = req.getParameter("version");
 
             if (((filename != null) && (!filename.equals("")))
-                    && ((namespace != null) && (!namespace.equals("")))) {
+                    && ((namespace != null) && (!namespace.equals("")))
+                    && ((version != null) && (!version.equals("")))) {
 
                 //push the file object and associated parameters to the filesystem (or other node)
-                FileSystemManager.getInstance().putFile(namespace, filename, aFileUpload);
+                FileSystemManager.getInstance().putFile(namespace, version, filename, aFileUpload);
             }
         }
     }
@@ -50,12 +52,14 @@ public class FileManager extends HttpServlet implements ProgramConstants {
             if (opt.equals("get")) {
                 String filename = req.getParameter("filename");
                 String namespace = req.getParameter("namespace");
+                String version = req.getParameter("version");
 
                 if (((filename != null) && (!filename.equals("")))
-                        && ((namespace != null) && (!namespace.equals("")))) {
+                        && ((namespace != null) && (!namespace.equals("")))
+                        && ((version != null) && (!version.equals("")))) {
 
                     //get the file object requested
-                    File aFile = FileSystemManager.getInstance().getFile(namespace, filename);
+                    File aFile = FileSystemManager.getInstance().getFile(namespace, version, filename);
 
                     //send the file contents to the requester
                     try {

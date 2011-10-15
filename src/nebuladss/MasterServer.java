@@ -1,18 +1,21 @@
 /*
- * singleton class for interfacing with the master server: used in  pinging 
- * master server over HTTP that this node is up
+ * singleton class for interfacing with the master server
  */
 package nebuladss;
 
+import contrib.AeSimpleSHA1;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.io.UnsupportedEncodingException;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLConnection;
+import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import java.util.prefs.Preferences;
 
 /**
  * @author Jason Zerbe
@@ -20,9 +23,25 @@ import java.util.logging.Logger;
 public class MasterServer implements ProgramConstants {
 
     private static MasterServer ms_singleInstance = null;
+    private Preferences ms_Preferences = null;
+    private String ms_NodeUUID = null;
+    private String kNodeUUIDKeyStr = "NodeUUID";
     private String ms_theServerUrlStr = kMasterServerBaseUrlStr;
+    private int ms_HttpPortNumber = 0;
 
     protected MasterServer() {
+        ms_Preferences = Preferences.userNodeForPackage(getClass());
+        ms_NodeUUID = ms_Preferences.get(kNodeUUIDKeyStr, ms_NodeUUID);
+        if (ms_NodeUUID == null) {
+            try {
+                ms_NodeUUID = AeSimpleSHA1.SHA1(NebulaDSS.getFormattedCurrentDate(kDateFormat_USA_Standard) + " + " + ms_HttpPortNumber);
+            } catch (NoSuchAlgorithmException ex) {
+                Logger.getLogger(MasterServer.class.getName()).log(Level.SEVERE, null, ex);
+            } catch (UnsupportedEncodingException ex) {
+                Logger.getLogger(MasterServer.class.getName()).log(Level.SEVERE, null, ex);
+            }
+            ms_Preferences.put(kNodeUUIDKeyStr, ms_NodeUUID);
+        }
     }
 
     public static MasterServer getInstance() {
@@ -32,37 +51,46 @@ public class MasterServer implements ProgramConstants {
         return ms_singleInstance;
     }
 
+    public String getUUID() {
+        return ms_NodeUUID;
+    }
+
     /**
-     * tell the master server that this node has the certain file
+     * tell the master server that this node has the certain file. if the file
+     * is new then it needs to be timestamped to differentiated between the versions
      * @param theNameSpace String
      * @param theFileName String
+     * @param theVersionNumber String
      * @return boolean - did contacting the master server work?
      */
-    public boolean putFile(String theNameSpace, String theFileName) {
-        String aURLConnectionParamStr = "opt=putfile"
-                + "&namespace=" + theNameSpace + "&filename=" + theFileName;
+    public boolean putFile(String theNameSpace, String theFileName, String theVersionNumber) {
+        String aURLConnectionParamStr = "opt=putfile" + "&uuid=" + ms_NodeUUID
+                + "&namespace=" + theNameSpace + "&filename=" + theFileName + "&version=";
+        if (theVersionNumber.equals("new")) {
+            aURLConnectionParamStr.concat(NebulaDSS.getFormattedCurrentDate(kDateFormat_precise_long));
+        } else {
+            aURLConnectionParamStr.concat(theVersionNumber);
+        }
         return voidServerMethod(aURLConnectionParamStr);
     }
 
     /**
      * add this node to the master server's list of up nodes
-     * @param theHttpPortNumber Integer
      * @return boolean - was this node added properly?
      */
-    public boolean addSelf(int theHttpPortNumber) {
-        String aURLConnectionParamStr = "opt=ping"
-                + "&http=" + theHttpPortNumber;
+    public boolean addSelf() {
+        String aURLConnectionParamStr = "opt=ping" + "&uuid=" + ms_NodeUUID
+                + "&http=" + ms_HttpPortNumber;
         return voidServerMethod(aURLConnectionParamStr);
     }
 
     /**
      * remove this node from the list on the master server of available nodes
-     * @param theHttpPortNumber Integer
      * @return boolean - was this node successfully removed?
      */
-    public boolean removeSelf(int theHttpPortNumber) {
-        String aURLConnectionParamStr = "opt=ping"
-                + "&http=" + theHttpPortNumber
+    public boolean removeSelf() {
+        String aURLConnectionParamStr = "opt=ping" + "&uuid=" + ms_NodeUUID
+                + "&http=" + ms_HttpPortNumber
                 + "&remove=true";
         return voidServerMethod(aURLConnectionParamStr);
     }
@@ -92,8 +120,8 @@ public class MasterServer implements ProgramConstants {
      */
     public ArrayList<String> getFileUrlList(String theNameSpace, String theFileName,
             int theMaxMillisecondLatency, int theMinMbpsBandwidth) {
-        String aURLConnectionParamStr = "opt=get" + "&filename=" + theFileName
-                + "&namespace=" + theNameSpace
+        String aURLConnectionParamStr = "opt=get" + "&uuid=" + ms_NodeUUID
+                + "&filename=" + theFileName + "&namespace=" + theNameSpace
                 + "&latency_max=" + String.valueOf(theMaxMillisecondLatency)
                 + "&bandwidth_min=" + String.valueOf(theMinMbpsBandwidth);
         ArrayList<String> returnArrayList = returnServerMethod(aURLConnectionParamStr);
@@ -171,5 +199,13 @@ public class MasterServer implements ProgramConstants {
      */
     public void setMasterSeverUrlStr(String theServerUrlStr) {
         ms_theServerUrlStr = theServerUrlStr;
+    }
+
+    /**
+     * sets the port number that the HTTP interface is listening on
+     * @param thePortNumber Integer
+     */
+    public void setHttpPortNumber(int thePortNumber) {
+        ms_HttpPortNumber = thePortNumber;
     }
 }
