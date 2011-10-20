@@ -17,7 +17,7 @@ import org.xml.sax.SAXException;
  * @author Jason Zerbe
  */
 public class NebulaDSS implements ProgramConstants {
-    
+
     private static int nd_HttpPortInt = kWebAppDefaultPortInt;
     private static String nd_MasterServerUrlStr = kMasterServerBaseUrlStr;
     private static int nd_MaxSizeMegaBytes = kStorageDefaultMaxSizeMegaBytes;
@@ -66,13 +66,15 @@ public class NebulaDSS implements ProgramConstants {
         FileSystemManager.getInstance().setStorageRootPath(nd_RootPathStr);
 
         //set up portmapping (if needed)
-        weupnp aweupnp = weupnp.getInstance();
-        try {
-            nd_HttpPortInt = aweupnp.addPortMapping("TCP", nd_HttpPortInt, kPortMappingDescStr);
-        } catch (IOException ex) {
-            Logger.getLogger(NebulaDSS.class.getName()).log(Level.WARNING, null, ex);
-        } catch (SAXException ex) {
-            Logger.getLogger(NebulaDSS.class.getName()).log(Level.WARNING, null, ex);
+        if (NebulaUtilities.getInstance().isLocalHostBehindNAT()) {
+            weupnp aweupnp = weupnp.getInstance();
+            try {
+                nd_HttpPortInt = aweupnp.addPortMapping("TCP", nd_HttpPortInt, kPortMappingDescStr);
+            } catch (IOException ex) {
+                Logger.getLogger(NebulaDSS.class.getName()).log(Level.WARNING, null, ex);
+            } catch (SAXException ex) {
+                Logger.getLogger(NebulaDSS.class.getName()).log(Level.WARNING, null, ex);
+            }
         }
 
         //start jetty with servlets that accept GET/POST for file management
