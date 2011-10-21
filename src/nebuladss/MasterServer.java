@@ -25,9 +25,8 @@ public class MasterServer implements ProgramConstants {
     private static MasterServer ms_singleInstance = null;
     private Preferences ms_Preferences = null;
     private String ms_NodeUUID = null;
-    private String kNodeUUIDKeyStr = "NodeUUID";
     private String ms_theServerUrlStr = kMasterServerBaseUrlStr;
-    private int ms_HttpPortNumber = 0;
+    private int ms_HttpPortNumber = kWebAppDefaultPortInt;
 
     protected MasterServer() {
         ms_Preferences = Preferences.userNodeForPackage(getClass());
@@ -64,7 +63,7 @@ public class MasterServer implements ProgramConstants {
      * @return boolean - did contacting the master server work?
      */
     public boolean putFile(String theNameSpace, String theFileName, String theVersionNumber) {
-        String aURLConnectionParamStr = "opt=putfile" + "&uuid=" + ms_NodeUUID
+        String aURLConnectionParamStr = "opt=put" + "&uuid=" + ms_NodeUUID
                 + "&namespace=" + theNameSpace + "&filename=" + theFileName + "&version=";
         if (theVersionNumber.equals("new")) {
             aURLConnectionParamStr.concat(NebulaDSS.getFormattedCurrentDate(kDateFormat_precise_long));

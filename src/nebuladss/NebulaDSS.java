@@ -67,19 +67,24 @@ public class NebulaDSS implements ProgramConstants {
 
         //set up portmapping (if needed)
         if (NebulaUtilities.getInstance().isLocalHostBehindNAT()) {
-            weupnp aweupnp = weupnp.getInstance();
             try {
-                nd_HttpPortInt = aweupnp.addPortMapping("TCP", nd_HttpPortInt, kPortMappingDescStr);
+                nd_HttpPortInt = weupnp.getInstance().addPortMapping("TCP", nd_HttpPortInt, kPortMappingDescStr);
             } catch (IOException ex) {
-                Logger.getLogger(NebulaDSS.class.getName()).log(Level.WARNING, null, ex);
+                Logger.getLogger(NebulaDSS.class.getName()).log(Level.SEVERE, null, ex);
+                System.exit(1);
             } catch (SAXException ex) {
-                Logger.getLogger(NebulaDSS.class.getName()).log(Level.WARNING, null, ex);
+                Logger.getLogger(NebulaDSS.class.getName()).log(Level.SEVERE, null, ex);
+                System.exit(1);
             }
         }
 
         //start jetty with servlets that accept GET/POST for file management
-        JettyWebServer aJettyWebServer = JettyWebServer.getInstance(nd_HttpPortInt);
-        aJettyWebServer.startServer();
+        try {
+            JettyWebServer.getInstance(nd_HttpPortInt).startServer();
+        } catch (Exception ex) {
+            Logger.getLogger(NebulaDSS.class.getName()).log(Level.SEVERE, null, ex);
+            System.exit(1);
+        }
 
         //tell master server about HTTP port once ready
         aMasterServer.setHttpPortNumber(nd_HttpPortInt);
@@ -91,14 +96,39 @@ public class NebulaDSS implements ProgramConstants {
                 + "--root-path=" + nd_RootPathStr + "\n"
                 + "--max-mb=" + String.valueOf(nd_MaxSizeMegaBytes) + "\n");
 
-        //open up control console
+        //open up minimal control console
         //for more: http://www.javapractices.com/topic/TopicAction.do?Id=79
         Console myConsole = System.console();
         myConsole.printf("type \"q\" at any time to exit");
-        String aUserInputStr = myConsole.readLine("> ");
-        if (aUserInputStr.contains("q")) {
-            aMasterServer.removeSelf();
-            System.exit(0);
+        while (true) {
+            String aUserInputStr = myConsole.readLine("> ");
+            if (aUserInputStr.contains("q")) {
+                //remove node from master server
+                aMasterServer.removeSelf();
+
+                //shutdown jetty
+                try {
+                    JettyWebServer.getInstance().stopServer();
+                } catch (Exception ex) {
+                    Logger.getLogger(NebulaDSS.class.getName()).log(Level.WARNING, null, ex);
+                }
+
+                //remove portmapping (if needed)
+                if (NebulaUtilities.getInstance().isLocalHostBehindNAT()) {
+                    try {
+                        weupnp.getInstance().removePortMapping("TCP", nd_HttpPortInt);
+                    } catch (IOException ex) {
+                        Logger.getLogger(NebulaDSS.class.getName()).log(Level.WARNING, null, ex);
+                    } catch (SAXException ex) {
+                        Logger.getLogger(NebulaDSS.class.getName()).log(Level.WARNING, null, ex);
+                    }
+                }
+
+                //finally exit the program
+                System.exit(0);
+            } else {
+                myConsole.printf("type \"q\" at any time to exit");
+            }
         }
     }
 

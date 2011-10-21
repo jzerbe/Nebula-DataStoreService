@@ -60,19 +60,11 @@ public class JettyWebServer implements ProgramConstants {
         return jws_serverPortInt;
     }
 
-    public void startServer() {
-        try {
-            jws_serverInstance.start();
-        } catch (Exception ex) {
-            Logger.getLogger(JettyWebServer.class.getName()).log(Level.SEVERE, null, ex);
-        }
+    public void startServer() throws Exception {
+        jws_serverInstance.start();
     }
 
-    public void stopServer() {
-        try {
-            jws_serverInstance.stop();
-        } catch (Exception ex) {
-            Logger.getLogger(JettyWebServer.class.getName()).log(Level.SEVERE, null, ex);
-        }
+    public void stopServer() throws Exception {
+        jws_serverInstance.stop();
     }
 }

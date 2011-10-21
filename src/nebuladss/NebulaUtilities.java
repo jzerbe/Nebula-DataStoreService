@@ -4,6 +4,7 @@
 package nebuladss;
 
 import java.net.Inet4Address;
+import java.net.Inet6Address;
 import java.net.InetAddress;
 import java.net.InterfaceAddress;
 import java.net.NetworkInterface;
@@ -40,7 +41,7 @@ public class NebulaUtilities {
             return isLocalHostBehindNATCache;
         }
 
-        String aIPv4AddrStr = getIPv4LanAddress();
+        String aIPv4AddrStr = getLocalIPAddress(IpAddressType.IPv4);
         if (aIPv4AddrStr == null) {
             return false;
         }
@@ -56,10 +57,10 @@ public class NebulaUtilities {
     }
 
     /**
-     * gets an IPv4 address of the local machine that is able to be routed
+     * gets a valid IP Address from the local machine that is able to be routed
      * @return String
      */
-    public String getIPv4LanAddress() {
+    public String getLocalIPAddress(IpAddressType theIpAddressType) {
         Enumeration<NetworkInterface> aNetworkInterfaceEnumeration = null;
         try {
             aNetworkInterfaceEnumeration = NetworkInterface.getNetworkInterfaces();
@@ -79,7 +80,9 @@ public class NebulaUtilities {
             for (InterfaceAddress currentNetworkInterfaceAddress : currentNetworkInterface.getInterfaceAddresses()) {
                 InetAddress currentNetworkInterfaceInetAddress = currentNetworkInterfaceAddress.getAddress();
 
-                if (!(currentNetworkInterfaceInetAddress instanceof Inet4Address)) {
+                if ((theIpAddressType.equals(IpAddressType.IPv4)) && (!(currentNetworkInterfaceInetAddress instanceof Inet4Address))) {
+                    continue;
+                } else if ((theIpAddressType.equals(IpAddressType.IPv6)) && (!(currentNetworkInterfaceInetAddress instanceof Inet6Address))) {
                     continue;
                 }
 
@@ -88,5 +91,13 @@ public class NebulaUtilities {
         }
 
         return null;
+    }
+
+    /**
+     * used in specifying what type of IP Address to grab
+     */
+    public enum IpAddressType {
+
+        IPv4, IPv6
     }
 }

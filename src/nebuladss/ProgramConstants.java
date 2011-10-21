@@ -29,6 +29,7 @@ public interface ProgramConstants {
     //master server stuffs
     public static final String kMasterServerBaseUrlStr = "http://www-users.cs.umn.edu/~zerbe/nebula_dss/webcache/";
     //storage constants
+    public static final String kNodeUUIDKeyStr = "NodeUUID";
     public static final int kStorageDefaultMaxSizeMegaBytes = 512; //default to half-gig available
     //date and time format strings --> http://download.oracle.com/javase/1,5.0/docs/api/java/text/SimpleDateFormat.html
     public static final String kDateFormat_USA_Standard = "yyyy-MM-dd HH:mm:ss";
