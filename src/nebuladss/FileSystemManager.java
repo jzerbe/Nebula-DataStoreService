@@ -4,6 +4,9 @@
 package nebuladss;
 
 import java.io.File;
+import java.io.IOException;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import java.util.prefs.Preferences;
 
 /**
@@ -12,6 +15,7 @@ import java.util.prefs.Preferences;
 public class FileSystemManager {
 
     private static FileSystemManager fsm_singleInstance = null;
+    private boolean fsm_DebugOn = false;
     private Preferences fsm_Preferences = null;
     private String fsm_kMaxAvailableMegaBytesKeyStr = "fs_MaxAvailableMegaBytes";
     private long fsm_MaxAvailableMegaBytes = 0;
@@ -19,7 +23,8 @@ public class FileSystemManager {
     private String fsm_StorageRootPathStr = null;
     private long fsm_kBytesToMegaBytesConstant = 1024 * 1024;
 
-    protected FileSystemManager() {
+    protected FileSystemManager(boolean theDebugOn) {
+        fsm_DebugOn = theDebugOn;
         fsm_Preferences = Preferences.userNodeForPackage(getClass());
         fsm_MaxAvailableMegaBytes = fsm_Preferences.getLong(fsm_kMaxAvailableMegaBytesKeyStr, fsm_MaxAvailableMegaBytes);
         fsm_StorageRootPathStr = fsm_Preferences.get(fsm_kStorageRootPathStrKey, fsm_StorageRootPathStr);
@@ -27,11 +32,25 @@ public class FileSystemManager {
 
     public static FileSystemManager getInstance() {
         if (fsm_singleInstance == null) {
-            fsm_singleInstance = new FileSystemManager();
+            fsm_singleInstance = new FileSystemManager(false);
         }
         return fsm_singleInstance;
     }
 
+    public static FileSystemManager getInstance(boolean theDebugOn) {
+        if (fsm_singleInstance == null) {
+            fsm_singleInstance = new FileSystemManager(theDebugOn);
+        }
+        return fsm_singleInstance;
+    }
+
+    /**
+     * store File or push it to another node if there is not enough space locally
+     * @param theNameSpace String
+     * @param theVersionNumber String
+     * @param theFileName String
+     * @param theFileToStore File
+     */
     public void putFile(String theNameSpace, String theVersionNumber, String theFileName, File theFileToStore) {
         if (getCurrentAvailableMegaBytes() > getMegaBytes(theFileToStore.length())) {
             String aFileOutputPathStr = getFormattedFilePathStr(fsm_StorageRootPathStr, theNameSpace, theVersionNumber, theFileName);
@@ -39,9 +58,11 @@ public class FileSystemManager {
             boolean aFileStoreWorked = theFileToStore.renameTo(aFileOutput);
             if (aFileStoreWorked) {
                 MasterServer.getInstance().putFile(theNameSpace, theFileName, theVersionNumber);
+                System.out.println(this.getClass().getName() + " - putFile store - " + theNameSpace + ":" + theFileName + ":" + theVersionNumber);
             }
         } else {
             //TODO: push file to other "close" location
+            System.out.println(this.getClass().getName() + " - putFile push - " + theNameSpace + ":" + theFileName + ":" + theVersionNumber);
         }
     }
 
@@ -58,6 +79,13 @@ public class FileSystemManager {
             String aFilePathStr = getFormattedFilePathStr(fsm_StorageRootPathStr, theNameSpace, theVersionNumber, theFileName);
             File aFile = new File(aFilePathStr);
             if (aFile.isFile()) {
+                if (fsm_DebugOn) {
+                    try {
+                        System.out.println(this.getClass().getName() + " - File Canonical Path - " + aFile.getCanonicalPath());
+                    } catch (IOException ex) {
+                        Logger.getLogger(FileSystemManager.class.getName()).log(Level.WARNING, null, ex);
+                    }
+                }
                 return aFile;
             } else {
                 return null;

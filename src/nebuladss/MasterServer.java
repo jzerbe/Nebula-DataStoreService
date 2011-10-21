@@ -23,12 +23,14 @@ import java.util.prefs.Preferences;
 public class MasterServer implements ProgramConstants {
 
     private static MasterServer ms_singleInstance = null;
+    private boolean ms_DebugOn = false;
     private Preferences ms_Preferences = null;
     private String ms_NodeUUID = null;
     private String ms_theServerUrlStr = kMasterServerBaseUrlStr;
     private int ms_HttpPortNumber = kWebAppDefaultPortInt;
 
-    protected MasterServer() {
+    protected MasterServer(boolean theDebugOn) {
+        ms_DebugOn = theDebugOn;
         ms_Preferences = Preferences.userNodeForPackage(getClass());
         ms_NodeUUID = ms_Preferences.get(kNodeUUIDKeyStr, ms_NodeUUID);
         if (ms_NodeUUID == null) {
@@ -45,7 +47,14 @@ public class MasterServer implements ProgramConstants {
 
     public static MasterServer getInstance() {
         if (ms_singleInstance == null) {
-            ms_singleInstance = new MasterServer();
+            ms_singleInstance = new MasterServer(false);
+        }
+        return ms_singleInstance;
+    }
+
+    public static MasterServer getInstance(boolean theDebugOn) {
+        if (ms_singleInstance == null) {
+            ms_singleInstance = new MasterServer(theDebugOn);
         }
         return ms_singleInstance;
     }
@@ -74,23 +83,23 @@ public class MasterServer implements ProgramConstants {
     }
 
     /**
-     * add this node to the master server's list of up nodes
+     * notify the master server that the (calling) node is up
      * @return boolean - was this node added properly?
      */
-    public boolean addSelf() {
+    public boolean notifyUp() {
         String aURLConnectionParamStr = "opt=ping" + "&uuid=" + ms_NodeUUID
                 + "&http=" + ms_HttpPortNumber;
         return voidServerMethod(aURLConnectionParamStr);
     }
 
     /**
-     * remove this node from the list on the master server of available nodes
+     * notify the master server that this node is down/offline
      * @return boolean - was this node successfully removed?
      */
-    public boolean removeSelf() {
+    public boolean notifyDown() {
         String aURLConnectionParamStr = "opt=ping" + "&uuid=" + ms_NodeUUID
                 + "&http=" + ms_HttpPortNumber
-                + "&remove=true";
+                + "&down=true";
         return voidServerMethod(aURLConnectionParamStr);
     }
 
@@ -177,6 +186,11 @@ public class MasterServer implements ProgramConstants {
         } catch (MalformedURLException ex) {
             Logger.getLogger(MasterServer.class.getName()).log(Level.SEVERE, null, ex);
             return null;
+        }
+
+        //output debug
+        if (ms_DebugOn) {
+            System.out.println(this.getClass().getName() + " - URL Connection - " + aUrl.toString());
         }
 
         //make the connection to the url

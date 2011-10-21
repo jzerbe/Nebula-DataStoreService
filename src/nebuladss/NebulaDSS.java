@@ -5,7 +5,6 @@ package nebuladss;
 
 import contrib.JettyWebServer;
 import contrib.weupnp;
-import java.io.Console;
 import java.io.IOException;
 import java.text.SimpleDateFormat;
 import java.util.GregorianCalendar;
@@ -22,6 +21,7 @@ public class NebulaDSS implements ProgramConstants {
     private static String nd_MasterServerUrlStr = kMasterServerBaseUrlStr;
     private static int nd_MaxSizeMegaBytes = kStorageDefaultMaxSizeMegaBytes;
     private static String nd_RootPathStr = "";
+    private static boolean nd_DebugOn = true;
 
     /**
      * help method for setting the global start values from the command line parameters
@@ -48,6 +48,8 @@ public class NebulaDSS implements ProgramConstants {
      * @param args String[]
      */
     public static void main(String[] args) {
+        Runtime.getRuntime().addShutdownHook(new RunWhenShuttingDown());
+
         for (String currentArg : args) {
             if (currentArg.contains("-h")) {
                 System.out.println(kUsageStr);
@@ -58,15 +60,14 @@ public class NebulaDSS implements ProgramConstants {
         } //done processing arguments
 
         //set bootstrap master server URL
-        MasterServer aMasterServer = MasterServer.getInstance();
-        aMasterServer.setMasterSeverUrlStr(nd_MasterServerUrlStr);
+        MasterServer.getInstance(nd_DebugOn).setMasterSeverUrlStr(nd_MasterServerUrlStr);
 
         //start local filesystem management
-        FileSystemManager.getInstance().setMaxAvailableMegaBytes(nd_MaxSizeMegaBytes);
+        FileSystemManager.getInstance(nd_DebugOn).setMaxAvailableMegaBytes(nd_MaxSizeMegaBytes);
         FileSystemManager.getInstance().setStorageRootPath(nd_RootPathStr);
 
         //set up portmapping (if needed)
-        if (NebulaUtilities.getInstance().isLocalHostBehindNAT()) {
+        if (NebulaUtilities.getInstance(nd_DebugOn).isLocalHostBehindNAT()) {
             try {
                 nd_HttpPortInt = weupnp.getInstance().addPortMapping("TCP", nd_HttpPortInt, kPortMappingDescStr);
             } catch (IOException ex) {
@@ -87,47 +88,42 @@ public class NebulaDSS implements ProgramConstants {
         }
 
         //tell master server about HTTP port once ready
-        aMasterServer.setHttpPortNumber(nd_HttpPortInt);
-        aMasterServer.addSelf();
+        MasterServer.getInstance().setHttpPortNumber(nd_HttpPortInt);
+        MasterServer.getInstance().notifyUp();
 
         //echo out what just happened
-        System.out.println("NebulaDSS started with NodeUUID = " + aMasterServer.getUUID() + "\n"
+        System.out.println("NebulaDSS started with NodeUUID = " + MasterServer.getInstance().getUUID() + "\n"
                 + "--http-port=" + String.valueOf(nd_HttpPortInt) + "\n"
                 + "--root-path=" + nd_RootPathStr + "\n"
                 + "--max-mb=" + String.valueOf(nd_MaxSizeMegaBytes) + "\n");
+    }
 
-        //open up minimal control console
-        //for more: http://www.javapractices.com/topic/TopicAction.do?Id=79
-        Console myConsole = System.console();
-        myConsole.printf("type \"q\" at any time to exit");
-        while (true) {
-            String aUserInputStr = myConsole.readLine("> ");
-            if (aUserInputStr.contains("q")) {
-                //remove node from master server
-                aMasterServer.removeSelf();
+    /**
+     * stop all relevant services in order of graceful shutdown needs
+     */
+    public static class RunWhenShuttingDown extends Thread {
 
-                //shutdown jetty
+        @Override
+        public void run() {
+            //1. remove node from master server - do not confuse other peers
+            MasterServer.getInstance().notifyDown();
+
+            //2. remove portmapping (if needed) - make sure UPnP IGD does not overload
+            if (NebulaUtilities.getInstance().isLocalHostBehindNAT()) {
                 try {
-                    JettyWebServer.getInstance().stopServer();
-                } catch (Exception ex) {
+                    weupnp.getInstance().removePortMapping("TCP", nd_HttpPortInt);
+                } catch (IOException ex) {
+                    Logger.getLogger(NebulaDSS.class.getName()).log(Level.WARNING, null, ex);
+                } catch (SAXException ex) {
                     Logger.getLogger(NebulaDSS.class.getName()).log(Level.WARNING, null, ex);
                 }
+            }
 
-                //remove portmapping (if needed)
-                if (NebulaUtilities.getInstance().isLocalHostBehindNAT()) {
-                    try {
-                        weupnp.getInstance().removePortMapping("TCP", nd_HttpPortInt);
-                    } catch (IOException ex) {
-                        Logger.getLogger(NebulaDSS.class.getName()).log(Level.WARNING, null, ex);
-                    } catch (SAXException ex) {
-                        Logger.getLogger(NebulaDSS.class.getName()).log(Level.WARNING, null, ex);
-                    }
-                }
-
-                //finally exit the program
-                System.exit(0);
-            } else {
-                myConsole.printf("type \"q\" at any time to exit");
+            //3. shutdown jetty -  does not really matter if aborted abruptly
+            try {
+                JettyWebServer.getInstance().stopServer();
+            } catch (Exception ex) {
+                Logger.getLogger(NebulaDSS.class.getName()).log(Level.WARNING, null, ex);
             }
         }
     }

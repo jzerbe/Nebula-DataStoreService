@@ -61,11 +61,13 @@ public class FileManager extends HttpServlet implements ProgramConstants {
                     //get the file object requested
                     File aFile = FileSystemManager.getInstance().getFile(namespace, version, filename);
 
-                    //send the file contents to the requester
-                    try {
-                        doDownload(req, resp, aFile.getCanonicalPath(), aFile.getName());
-                    } catch (IOException ex) {
-                        Logger.getLogger(FileManager.class.getName()).log(Level.SEVERE, null, ex);
+                    //send the file contents to the requester (if file exists)
+                    if (aFile != null) {
+                        try {
+                            doDownload(req, resp, aFile.getCanonicalPath(), aFile.getName());
+                        } catch (IOException ex) {
+                            Logger.getLogger(FileManager.class.getName()).log(Level.SEVERE, null, ex);
+                        }
                     }
                 }
             }

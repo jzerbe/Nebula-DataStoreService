@@ -20,14 +20,23 @@ import java.util.logging.Logger;
 public class NebulaUtilities {
 
     private static NebulaUtilities nu_singleInstance = null;
+    private boolean nu_DebugOn = false;
     private boolean isLocalHostBehindNATCache = false;
 
-    protected NebulaUtilities() {
+    protected NebulaUtilities(boolean theDebugOn) {
+        nu_DebugOn = theDebugOn;
     }
 
     public static NebulaUtilities getInstance() {
         if (nu_singleInstance == null) {
-            nu_singleInstance = new NebulaUtilities();
+            nu_singleInstance = new NebulaUtilities(false);
+        }
+        return nu_singleInstance;
+    }
+
+    public static NebulaUtilities getInstance(boolean theDebugOn) {
+        if (nu_singleInstance == null) {
+            nu_singleInstance = new NebulaUtilities(theDebugOn);
         }
         return nu_singleInstance;
     }
@@ -45,6 +54,11 @@ public class NebulaUtilities {
         if (aIPv4AddrStr == null) {
             return false;
         }
+
+        if (nu_DebugOn) {
+            System.out.println("LocalIPv4 Address = " + aIPv4AddrStr);
+        }
+
         String isValidExternalAddressStr = "ipv4=" + aIPv4AddrStr;
         String aURLConnectionParamStr = "opt=nat" + "&" + isValidExternalAddressStr;
         ArrayList<String> returnArrayList = MasterServer.getInstance().returnServerMethod(aURLConnectionParamStr);
