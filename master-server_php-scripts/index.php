@@ -22,44 +22,38 @@ class DbType { //extends SplEnum { //not enabled in most dists yet
     const MySQL = 2;
 }
 
-//configure your db
-$myDbType = new DbType(DbType::SQLite3);
-$myDbHost = 'localhost'; //not needed for SQLite3
-$myDbUser = 'NebulaDSS'; //not needed for SQLite3
-$myDbPass = 'NebulaDSS'; //not needed for SQLite3
-$myDbName = 'NebulaDSS'; //will be the filename of db in SQLite3
-//table names
-$myNodesTable = 'Nodes';
-$myUptimeTable = 'Uptime';
-$myFilesTable = 'Files';
+//load in the database configuration
+require('config.php');
 
-//configure the output
-$kGlobalDebugIsOn = true;
-$kGlobalDebugStrFlag = 'DEBUG';
+//load in the database helper functions: open/close
+require('dbfunctions.php');
 
 //misc global internal constants
 $myGlobalSqlResourceObject = false;
 $kMaxFetchOnlineNodes = 20;
 $kMinOnlineSessions = 3;
 
-//node operation and db field names
+//node storage field names
 $kUUIDStr = 'uuid';
 $kWebStr = 'http';
 $kAddrStr = 'address';
 $kOnlineStr = 'online';
+//Uptime field names
+$kOnlineTimeStr = 'onlineTimeInt';
+$kOfflineTimeStr = 'offlineTimeInt';
+//file storage field names
 $kFileNameStr = 'filename';
 $kNameSpaceStr = 'namespace';
 $kVersionStr = 'version';
-//logic constants
+
+//main logic constants
 $kIPv4Str = 'ipv4';
 $kOperationNat = 'nat';
 $kOperationGetOnlineStr = 'online';
 $kOperationGetOfflineStr = 'offline';
 $kOperationPingStr = 'ping';
 $kOperationPingDownStr = 'down';
-//Uptime field names
-$kOnlineTimeStr = 'onlineTimeInt';
-$kOfflineTimeStr = 'offlineTimeInt';
+
 //file operations
 $kOperationGet = 'get';
 $kOperationPut = 'put';
@@ -71,7 +65,7 @@ if (isset($_GET['opt']) && ($_GET['opt'] != '')) {
     if ($opt == $kOperationNat) { //NAT discovery
         $address = $_SERVER["REMOTE_ADDR"];
         if (isset($_GET[$kIPv4Str]) && ($_GET[$kIPv4Str] == $address)) {
-            //do something?
+            //do something when there is a match?
         }
         echo "opt=nat\nipv4=$address\n";
     } elseif ($opt == $kOperationGetOnlineStr) { //get a list of online nodes
@@ -107,8 +101,15 @@ if (isset($_GET['opt']) && ($_GET['opt'] != '')) {
         } else {
             echo "$kGlobalDebugStrFlag - '$opt' does not have necessary parameters present in your GET request";
         }
-    } elseif ($opt == $kOperationGet) { //grab newline delimited dump of nodes with file
-    //
+    } elseif ($opt == $kOperationGet) { //grab newline delimited dump of nodes with file (URLs)
+        if ((isset($_GET[$kFileNameStr]) && ($_GET[$kFileNameStr] != ''))
+                && (isset($_GET[$kFileNameStr]) && ($_GET[$kFileNameStr] != ''))
+                && (isset($_GET[$kNameSpaceStr]) && ($_GET[$kNameSpaceStr] != ''))
+                && (isset($_GET[$kVersionStr]) && ($_GET[$kVersionStr] != ''))) { //have params for SQL
+            //do query
+        } else {
+            echo "$kGlobalDebugStrFlag - '$opt' does not have necessary parameters present in your GET request";
+        }
     } elseif ($kGlobalDebugIsOn) { //opt not found
         echo "$kGlobalDebugStrFlag - '$opt' is not a recognized operation";
     }
@@ -117,23 +118,30 @@ if (isset($_GET['opt']) && ($_GET['opt'] != '')) {
 }
 
 /**
- * insert a record into the database that a certain node has a certain file
+ * record that a certain node now contains a copy of a certain file
  * @global DbType $myDbType
  * @global SQL_LINK $myGlobalSqlResourceObject
- * @global string $myFilesTable
+ * @global type $myFilesTable
  * @global string $kUUIDStr
  * @global string $kNameSpaceStr
  * @global string $kFileNameStr
  * @global string $kVersionStr
- * @param type $theNodeUUID
- * @param type $theNameSpaceStr
- * @param type $theFileNameStr
- * @param type $theVersionInt
+ * @param string $theNodeUUID
+ * @param string $theNameSpaceStr
+ * @param string $theFileNameStr
+ * @param int $theVersionInt 
  */
 function putFile($theNodeUUID, $theNameSpaceStr, $theFileNameStr, $theVersionInt) {
-    global $myDbType, $myGlobalSqlResourceObject, $myFilesTable, $kUUIDStr, $kNameSpaceStr, $kFileNameStr, $kVersionStr;
-    $aSqlCountStr = "SELECT COUNT($kUUIDStr) FROM $myFilesTable WHERE $kUUIDStr='$theNodeUUID' AND $kNameSpaceStr='$theNameSpaceStr' AND $kFileNameStr='$theFileNameStr' AND $kVersionStr=$theVersionInt";
-    $aSqlInsertStr = "INSERT INTO $myFilesTable VALUES(NULL, '$theNodeUUID', '$theNameSpaceStr', '$theFileNameStr', $theVersionInt)";
+    global $myDbType, $myGlobalSqlResourceObject; //GLOBAL DB INFO
+    global $myFilesTable, $kUUIDStr, $kNameSpaceStr, $kFileNameStr, $kVersionStr; //File table specific
+
+    $aSqlCountStr = "SELECT COUNT($kUUIDStr) FROM $myFilesTable "
+            + " WHERE $kUUIDStr='$theNodeUUID' AND "
+            + "$kNameSpaceStr='$theNameSpaceStr' AND "
+            + "$kFileNameStr='$theFileNameStr' AND $kVersionStr=$theVersionInt";
+    $aSqlInsertStr = "INSERT INTO $myFilesTable VALUES(NULL, '$theNodeUUID', "
+            + "'$theNameSpaceStr', '$theFileNameStr', $theVersionInt)";
+
     if ($myDbType == DbType::SQLite3) {
         $count = $myGlobalSqlResourceObject->querySingle($aSqlCountStr);
         if ($count < 1) {
@@ -280,60 +288,6 @@ function setNodeOffline($uuid, $address, $aWebPort) {
         $myGlobalSqlResourceObject->exec($aSqlStr);
     } elseif ($myDbType == DbType::MySQL) {
         mysql_query($aSqlStr, $myGlobalSqlResourceObject) or die(mysql_errno());
-    }
-}
-
-/**
- * open connection to db and create table if does not already exist
- * @global DbType $myDbType
- * @global SQL_LINK $myGlobalSqlResourceObject
- * @global string $myDbName
- * @global string $myNodesTable
- * @global string $myDbHost
- * @global string $myDbUser
- * @global string $myDbPass
- * @global string $kUUIDStr
- * @global string $kAddrStr
- * @global string $kWebStr
- * @global string $kOnlineStr
- * @global string $myUptimeTable
- * @global string $kOnlineTimeStr
- * @global string $kOfflineTimeStr
- * @global string $myFilesTable
- * @global string $kNameSpaceStr
- * @global string $kFileNameStr
- * @global string $kVersionStr
- */
-function open() {
-    global $myDbType, $myGlobalSqlResourceObject, $myDbName, $myNodesTable, $myDbHost, $myDbUser, $myDbPass, $kUUIDStr, $kAddrStr, $kWebStr, $kOnlineStr, $myUptimeTable, $kOnlineTimeStr, $kOfflineTimeStr, $myFilesTable, $kNameSpaceStr, $kFileNameStr, $kVersionStr;
-    $aSqlNodesTableStr = "CREATE TABLE IF NOT EXISTS $myNodesTable (id INTEGER PRIMARY KEY ASC, $kUUIDStr TEXT, $kAddrStr TEXT, $kWebStr INTEGER, $kOnlineStr INTEGER)";
-    $aSqlUptimeTableStr = "CREATE TABLE IF NOT EXISTS $myUptimeTable (id INTEGER PRIMARY KEY ASC, $kUUIDStr TEXT, $kOnlineTimeStr INTEGER, $kOfflineTimeStr INTEGER)";
-    $aSqlFilesTableStr = "CREATE TABLE IF NOT EXISTS $myFilesTable (id INTEGER PRIMARY KEY ASC, $kUUIDStr TEXT, $kNameSpaceStr TEXT, $kFileNameStr TEXT, $kVersionStr INTEGER)";
-    if ($myDbType == DbType::SQLite3) {
-        $myGlobalSqlResourceObject = new SQLite3($myDbName);
-        $myGlobalSqlResourceObject->exec($aSqlNodesTableStr);
-        $myGlobalSqlResourceObject->exec($aSqlUptimeTableStr);
-        $myGlobalSqlResourceObject->exec($aSqlFilesTableStr);
-    } elseif ($myDbType == DbType::MySQL) {
-        $myGlobalSqlResourceObject = mysql_connect($myDbHost, $myDbUser, $myDbPass);
-        mysql_select_db($myDbName, $myGlobalSqlResourceObject);
-        mysql_query($aSqlNodesTableStr, $myGlobalSqlResourceObject) or die(mysql_errno());
-        mysql_query($aSqlUptimeTableStr, $myGlobalSqlResourceObject) or die(mysql_errno());
-        mysql_query($aSqlFilesTableStr, $myGlobalSqlResourceObject) or die(mysql_errno());
-    }
-}
-
-/**
- * close up connection to the database
- * @global DbType $myDbType
- * @global SQL_LINK $myGlobalSqlResourceObject
- */
-function close() {
-    global $myDbType, $myGlobalSqlResourceObject;
-    if ($myDbType == DbType::SQLite3) {
-        $myGlobalSqlResourceObject->close();
-    } elseif ($myDbType == DbType::MySQL) {
-        mysql_close($myGlobalSqlResourceObject);
     }
 }
 
