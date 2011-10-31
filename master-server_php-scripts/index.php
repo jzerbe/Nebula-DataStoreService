@@ -1,8 +1,8 @@
 <?php
 
 /**
- * master server script for coordinating NebulaDSS network nodes
- * keeps records of all nodes currently online: locations, latencies
+ * master server script for coordinating NebulaDSS network nodes:
+ * keeps records of all nodes currently online (locations, latencies, etc.)
  *
  * run on your standard PHP5 and SQLite3 or MySQL compatible webserver
  *
@@ -25,12 +25,12 @@ class DbType { //extends SplEnum { //not enabled in most dists yet
 //load in the database configuration
 require('config.php');
 
-//load in the database helper functions: open/close
+//load in the database helper/setup functions: open/close
 require('dbfunctions.php');
 
 //misc global internal constants
 $myGlobalSqlResourceObject = false;
-$kMaxFetchOnlineNodes = 20;
+$kMaxFetchNodes = 20;
 $kMinOnlineSessions = 3;
 
 //node storage field names
@@ -59,7 +59,7 @@ $kOperationGet = 'get';
 $kOperationPut = 'put';
 
 
-//entry point of main logic
+/** main logic follows - do not touch unless you know what you are doing */
 if (isset($_GET['opt']) && ($_GET['opt'] != '')) {
     $opt = $_GET['opt'];
     if ($opt == $kOperationNat) { //NAT discovery
@@ -117,6 +117,9 @@ if (isset($_GET['opt']) && ($_GET['opt'] != '')) {
     echo "$kGlobalDebugStrFlag - no 'opt' parameter in your GET request, nothing to do";
 }
 
+
+/** database functions follow - do not touch unless you know what you are doing */
+
 /**
  * record that a certain node now contains a copy of a certain file
  * @global DbType $myDbType
@@ -157,24 +160,30 @@ function putFile($theNodeUUID, $theNameSpaceStr, $theFileNameStr, $theVersionInt
 }
 
 /**
- * dump newline delimited online node list from the database ordered by uptime
+ * newline dump of ($kMaxFetchNodes) up nodes (address:port) with high-probablity of staying up
  * @global DbType $myDbType
  * @global SQL_LINK $myGlobalSqlResourceObject
  * @global string $myNodesTable
- * @global int $kMaxFetchOnlineNodes
- * @global string $kAddrStr
- * @global string $kWebStr
- * @global string $kOnlineStr
- * @global string $myUptimeTable
  * @global string $kUUIDStr
- * @global int $kMinOnlineSessions
+ * @global string $kOnlineStr
+ * @global int $kMaxFetchNodes
+ * @global string $myUptimeTable
  * @global string $kOnlineTimeStr
- * @global string $kOfflineTimeStr
+ * @global string $kOfflineTimeStr 
  */
 function getOnlineNodes() {
-    global $myDbType, $myGlobalSqlResourceObject, $myNodesTable, $kMaxFetchOnlineNodes, $kAddrStr, $kWebStr, $kOnlineStr, $myUptimeTable, $kUUIDStr, $kMinOnlineSessions, $kOnlineTimeStr, $kOfflineTimeStr;
-    $aSqlStr = "SELECT Up.$kUUIDStr AS UptimeUUID, Up.$kOnlineTimeStr AS OnlineTimeStamp, Up.$kOfflineTimeStr AS OfflineTimeStamp, OfflineTimeStamp - OnlineTimeStamp AS UptimeDiff FROM $myNodesTable N, $myUptimeTable Up WHERE Up.$kUUIDStr = N.$kUUIDStr AND N.$kOnlineStr=1";
-    //select from this "Temp" select
+    global $myDbType, $myGlobalSqlResourceObject; //GLOBAL DB INFO
+    global $myNodesTable, $kUUIDStr, $kOnlineStr, $kMaxFetchNodes; //Node
+    global $myUptimeTable, $kOnlineTimeStr, $kOfflineTimeStr; //Uptime
+
+    $aSqlStr = "SELECT Up.$kUUIDStr AS UptimeUUID, Up.$kOnlineTimeStr AS "
+            + "OnlineTimeStamp, Up.$kOfflineTimeStr AS OfflineTimeStamp, "
+            + "OfflineTimeStamp - OnlineTimeStamp AS UptimeDiff FROM "
+            + "$myNodesTable N, $myUptimeTable Up WHERE Up.$kUUIDStr = "
+            + "N.$kUUIDStr AND N.$kOnlineStr=1";
+    //select from this "Temp" select ($kMaxFetchNodes)
+    //TODO: create select query with outputs: $kAddrStr, $kWebStr
+
     if ($myDbType == DbType::SQLite3) {
         $results = $myGlobalSqlResourceObject->query($aSqlStr);
         while ($row = $results->fetchArray(SQLITE3_ASSOC)) {
@@ -193,56 +202,34 @@ function getOnlineNodes() {
 }
 
 /**
- * dump newline delimited offline node list from the database
- * @global DbType $myDbType
- * @global SQL_LINK $myGlobalSqlResourceObject
- * @global string $myNodesTable
- * @global int $kMaxFetchOnlineNodes
- * @global string $kAddrStr
- * @global string $kWebStr
- * @global string $kOnlineStr
- */
-function getOfflineNodes() {
-    global $myDbType, $myGlobalSqlResourceObject, $myNodesTable, $kMaxFetchOnlineNodes, $kAddrStr, $kWebStr, $kOnlineStr;
-    $aSqlStr = "SELECT $kAddrStr, $kWebStr FROM $myNodesTable WHERE $kOnlineStr=0 ORDER BY id DESC LIMIT $kMaxFetchOnlineNodes";
-    if ($myDbType == DbType::SQLite3) {
-        $results = $myGlobalSqlResourceObject->query($aSqlStr);
-        while ($row = $results->fetchArray(SQLITE3_ASSOC)) {
-            if (!isset($row[$kAddrStr]))
-                continue;
-            echo $row[$kAddrStr] . ':' . $row[$kWebStr] . "\n";
-        }
-    } elseif ($myDbType == DbType::MySQL) {
-        $results = mysql_query($aSqlStr, $myGlobalSqlResourceObject) or die(mysql_errno($myGlobalSqlResourceObject));
-        while ($row = mysql_fetch_array($result, MYSQL_ASSOC)) {
-            if (!isset($row[$kAddrStr]))
-                continue;
-            echo $row[$kAddrStr] . ':' . $row[$kWebStr] . "\n";
-        }
-    }
-}
-
-/**
- * insert node tuple into database or set an existing node tuple to be online
+ * set the new/existing node to be online (add to/update the db)
  * @global DbType $myDbType
  * @global SQL_LINK $myGlobalSqlResourceObject
  * @global string $myNodesTable
  * @global string $kUUIDStr
  * @global string $kAddrStr
- * @global string $kWebStr
  * @global string $kOnlineStr
  * @global string $myUptimeTable
  * @param type $uuid
  * @param type $address
- * @param type $aWebPort
+ * @param type $aWebPort 
  */
 function setNodeOnline($uuid, $address, $aWebPort) {
-    global $myDbType, $myGlobalSqlResourceObject, $myNodesTable, $kUUIDStr, $kAddrStr, $kWebStr, $kOnlineStr, $myUptimeTable;
-    $aSqlCountStr = "SELECT COUNT($kUUIDStr) FROM $myNodesTable WHERE $kUUIDStr='$uuid' AND $kAddrStr='$address'";
-    $aSqlUpdateStr = "UPDATE $myNodesTable SET $kOnlineStr=1 WHERE $kUUIDStr='$uuid' AND $kAddrStr='$address'";
-    $aSqlInsertStr = "INSERT INTO $myNodesTable VALUES(NULL, '$uuid', '$address', $aWebPort, 1)";
-    $aDateSortableStr = date("YmdHis");
-    $aSqlUptimeStr = "INSERT INTO $myUptimeTable VALUE(NULL, '$uuid', $aDateSortableStr, 0)";
+    global $myDbType, $myGlobalSqlResourceObject; //GLOBAL DB INFO
+    global $myNodesTable, $kUUIDStr, $kAddrStr, $kOnlineStr; //Node
+    global $myUptimeTable; //Uptime
+
+    $aSqlCountStr = "SELECT COUNT(*) FROM $myNodesTable WHERE "
+            + "$kUUIDStr='$uuid' AND $kAddrStr='$address'"; //how many nodes exactly match?
+    $aSqlUpdateStr = "UPDATE $myNodesTable SET $kOnlineStr=1 WHERE "
+            + "$kUUIDStr='$uuid' AND $kAddrStr='$address'"; //set the node online
+    $aSqlInsertStr = "INSERT INTO $myNodesTable VALUES(NULL, '$uuid', "
+            + "'$address', $aWebPort, 1)"; //create a node entry if not seen before
+
+    $aDateSortableStr = date("YmdHis"); //set the sortable date to be exactly now
+    $aSqlUptimeStr = "INSERT INTO $myUptimeTable VALUE(NULL, '$uuid', "
+            + "$aDateSortableStr, 0)"; //insert a new session start
+
     if ($myDbType == DbType::SQLite3) {
         $count = $myGlobalSqlResourceObject->querySingle($aSqlCountStr);
         if ($count > 0) {
@@ -264,26 +251,66 @@ function setNodeOnline($uuid, $address, $aWebPort) {
 }
 
 /**
- * set a node to be offline in the database
+ * newline dump of ($kMaxFetchNodes) offline nodes (address:port), ordered by creation
+ * @global DbType $myDbType
+ * @global SQL_LINK $myGlobalSqlResourceObject
+ * @global string $myNodesTable
+ * @global string $kAddrStr
+ * @global string $kWebStr
+ * @global string $kOnlineStr
+ * @global int $kMaxFetchNodes 
+ */
+function getOfflineNodes() {
+    global $myDbType, $myGlobalSqlResourceObject; //GLOBAL DB INFO
+    global $myNodesTable, $kAddrStr, $kWebStr, $kOnlineStr, $kMaxFetchNodes; //Nodes
+
+    $aSqlStr = "SELECT $kAddrStr, $kWebStr FROM $myNodesTable WHERE "
+            + "$kOnlineStr=0 ORDER BY id DESC LIMIT $kMaxFetchNodes";
+
+    if ($myDbType == DbType::SQLite3) {
+        $results = $myGlobalSqlResourceObject->query($aSqlStr);
+        while ($row = $results->fetchArray(SQLITE3_ASSOC)) {
+            if (!isset($row[$kAddrStr]))
+                continue;
+            echo $row[$kAddrStr] . ':' . $row[$kWebStr] . "\n";
+        }
+    } elseif ($myDbType == DbType::MySQL) {
+        $results = mysql_query($aSqlStr, $myGlobalSqlResourceObject) or die(mysql_errno($myGlobalSqlResourceObject));
+        while ($row = mysql_fetch_array($result, MYSQL_ASSOC)) {
+            if (!isset($row[$kAddrStr]))
+                continue;
+            echo $row[$kAddrStr] . ':' . $row[$kWebStr] . "\n";
+        }
+    }
+}
+
+/**
+ * set the existing node to be online (update the db)
  * @global DbType $myDbType
  * @global SQL_LINK $myGlobalSqlResourceObject
  * @global string $myNodesTable
  * @global string $kUUIDStr
  * @global string $kAddrStr
- * @global string $kWebStr
  * @global string $kOnlineStr
  * @global string $myUptimeTable
- * @global string $kOnlineTimeStr
  * @global string $kOfflineTimeStr
- * @param type $uuid
- * @param type $address
- * @param type $aWebPort
+ * @param string $uuid
+ * @param string $address
+ * @param int $aWebPort 
  */
 function setNodeOffline($uuid, $address, $aWebPort) {
-    global $myDbType, $myGlobalSqlResourceObject, $myNodesTable, $kUUIDStr, $kAddrStr, $kWebStr, $kOnlineStr, $myUptimeTable, $kOnlineTimeStr, $kOfflineTimeStr;
-    $aSqlStr = "UPDATE $myNodesTable SET $kOnlineStr=0 WHERE $kUUIDStr='$uuid' AND $kAddrStr='$address'";
+    global $myDbType, $myGlobalSqlResourceObject;
+    global $myNodesTable, $kUUIDStr, $kAddrStr, $kOnlineStr; //Node table
+    global $myUptimeTable, $kOfflineTimeStr; //Uptime table
+
+    $aSqlStr = "UPDATE $myNodesTable SET $kOnlineStr=0 WHERE $kUUIDStr='$uuid' "
+            + "AND $kAddrStr='$address'";
+
     $aDateSortableStr = date("YmdHis");
-    $aSqlUptimeStr = "UPDATE $myUptimeTable SET $kOfflineTimeStr=$aDateSortableStr WHERE $kUUIDStr='$uuid' AND $kOfflineTimeStr=0";
+    $aSqlUptimeStr = "UPDATE $myUptimeTable SET "
+            + "$kOfflineTimeStr=$aDateSortableStr WHERE $kUUIDStr='$uuid' "
+            + "AND $kOfflineTimeStr=0";
+
     if ($myDbType == DbType::SQLite3) {
         $myGlobalSqlResourceObject->exec($aSqlStr);
     } elseif ($myDbType == DbType::MySQL) {

@@ -35,7 +35,7 @@ function open() {
             + "$kNameSpaceStr TEXT, $kFileNameStr TEXT, $kVersionStr INTEGER)";
 
     if ($myDbType == DbType::SQLite3) {
-        $myGlobalSqlResourceObject = new SQLite3($myDbName);
+        $myGlobalSqlResourceObject = new SQLite3("$myDbPath/$myDbName");
         $myGlobalSqlResourceObject->exec($aSqlNodesTableStr);
         $myGlobalSqlResourceObject->exec($aSqlUptimeTableStr);
         $myGlobalSqlResourceObject->exec($aSqlFilesTableStr);
