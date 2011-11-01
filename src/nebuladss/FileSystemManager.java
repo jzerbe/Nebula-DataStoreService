@@ -165,12 +165,15 @@ public class FileSystemManager {
     }
 
     /**
-     * set the root storage path for the datastore node
+     * set the root storage path for the datastore node, remove trailing slash
      * @param theStorageRootPathStr String
      */
     public void setStorageRootPath(String theStorageRootPathStr) {
-        if (theStorageRootPathStr.endsWith("/")) {
+        if (theStorageRootPathStr.endsWith("/")) { //unix
             theStorageRootPathStr = theStorageRootPathStr.substring(0, theStorageRootPathStr.lastIndexOf("/"));
+        }
+        if (theStorageRootPathStr.endsWith("\\")) { //windows
+            theStorageRootPathStr = theStorageRootPathStr.substring(0, theStorageRootPathStr.lastIndexOf("\\"));
         }
         if (theStorageRootPathStr.equals("")) {
             theStorageRootPathStr = "nebula_dss";

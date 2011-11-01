@@ -17,11 +17,12 @@ import java.util.logging.Logger;
 /**
  * @author Jason Zerbe
  */
-public class NebulaUtilities {
+public class NebulaUtilities implements ProgramConstants {
 
     private static NebulaUtilities nu_singleInstance = null;
     private boolean nu_DebugOn = false;
-    private boolean isLocalHostBehindNATCache = false;
+    private boolean nu_isLocalHostBehindNATCache = false;
+    private int nu_TaskTimerSeconds = kDefaultTaskTimerSeconds;
 
     protected NebulaUtilities(boolean theDebugOn) {
         nu_DebugOn = theDebugOn;
@@ -46,8 +47,8 @@ public class NebulaUtilities {
      * @return boolean - is behind a NAT, needs port forwarding
      */
     public boolean isLocalHostBehindNAT() {
-        if (isLocalHostBehindNATCache) {
-            return isLocalHostBehindNATCache;
+        if (nu_isLocalHostBehindNATCache) {
+            return nu_isLocalHostBehindNATCache;
         }
 
         String aIPv4AddrStr = getLocalIPAddress(IpAddressType.IPv4);
@@ -65,8 +66,26 @@ public class NebulaUtilities {
         if (returnArrayList.contains(isValidExternalAddressStr)) {
             return false;
         } else {
-            isLocalHostBehindNATCache = true;
+            nu_isLocalHostBehindNATCache = true;
             return true;
+        }
+    }
+
+    /**
+     * set up how often periodic latency and bandwidth checks should run
+     * based on returned master server settings
+     */
+    protected void setPeriodTaskTime() {
+        String aOperationPeriodicTask = "schedule";
+        String aURLConnectionParamStr = "opt=" + aOperationPeriodicTask;
+        ArrayList<String> returnArrayList = MasterServer.getInstance().returnServerMethod(aURLConnectionParamStr);
+        if (returnArrayList.contains(aOperationPeriodicTask)) {
+            for (String returnElement : returnArrayList) {
+                if (returnElement.contains(aOperationPeriodicTask)) {
+                    String returnElementArray[] = returnElement.split(kMasterServerReturnStringSplitStr);
+                    nu_TaskTimerSeconds = Integer.getInteger(returnElementArray[1]);
+                }
+            }
         }
     }
 

@@ -20,7 +20,7 @@ public class NebulaDSS implements ProgramConstants {
     private static int nd_HttpPortInt = kWebAppDefaultPortInt;
     private static String nd_MasterServerUrlStr = kMasterServerBaseUrlStr;
     private static int nd_MaxSizeMegaBytes = kStorageDefaultMaxSizeMegaBytes;
-    private static String nd_RootPathStr = "";
+    private static String nd_RootPathStr = "default-fs-store";
     private static boolean nd_DebugOn = true;
 
     /**

@@ -28,6 +28,9 @@ require('config.php');
 //load in the database helper/setup functions: open/close
 require('dbfunctions.php');
 
+//how often (seconds) should periodic latency and bandwidth checks kick off?
+$kTaskTimerSeconds = 180;
+
 //misc global internal constants
 $myGlobalSqlResourceObject = false;
 $kMaxFetchNodes = 20;
@@ -47,8 +50,10 @@ $kNameSpaceStr = 'namespace';
 $kVersionStr = 'version';
 
 //main logic constants
+$kOptStr = 'opt';
 $kIPv4Str = 'ipv4';
 $kOperationNat = 'nat';
+$kOperationPeriodicTask = 'schedule';
 $kOperationGetOnlineStr = 'online';
 $kOperationGetOfflineStr = 'offline';
 $kOperationPingStr = 'ping';
@@ -60,14 +65,16 @@ $kOperationPut = 'put';
 
 
 /** main logic follows - do not touch unless you know what you are doing */
-if (isset($_GET['opt']) && ($_GET['opt'] != '')) {
-    $opt = $_GET['opt'];
+if (isset($_GET[$kOptStr]) && ($_GET[$kOptStr] != '')) {
+    $opt = $_GET[$kOptStr];
     if ($opt == $kOperationNat) { //NAT discovery
         $address = $_SERVER["REMOTE_ADDR"];
         if (isset($_GET[$kIPv4Str]) && ($_GET[$kIPv4Str] == $address)) {
             //do something when there is a match?
         }
-        echo "opt=nat\nipv4=$address\n";
+        echo "$kOptStr=$kOperationNat\n$kIPv4Str=$address\n";
+    } elseif ($opt == $kOperationPeriodicTask) { //how often should periodic checks run?
+        echo "$kOptStr=$kOperationPeriodicTask\n$kOperationPeriodicTask=$kTaskTimerSeconds\n";
     } elseif ($opt == $kOperationGetOnlineStr) { //get a list of online nodes
         open();
         getOnlineNodes();
@@ -114,7 +121,7 @@ if (isset($_GET['opt']) && ($_GET['opt'] != '')) {
         echo "$kGlobalDebugStrFlag - '$opt' is not a recognized operation";
     }
 } elseif ($kGlobalDebugIsOn) {
-    echo "$kGlobalDebugStrFlag - no 'opt' parameter in your GET request, nothing to do";
+    echo "$kGlobalDebugStrFlag - no $kOptStr parameter in your GET request, nothing to do";
 }
 
 

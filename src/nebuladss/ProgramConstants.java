@@ -28,6 +28,7 @@ public interface ProgramConstants {
     public static final String kWebAppDirStr = "../webapp"; //root is the directory or the Jetty calling class
     //master server stuffs
     public static final String kMasterServerBaseUrlStr = "http://www-users.cs.umn.edu/~zerbe/nebula_dss/webcache/";
+    public static final String kMasterServerReturnStringSplitStr = "=";
     //storage constants
     public static final String kNodeUUIDKeyStr = "NodeUUID";
     public static final int kStorageDefaultMaxSizeMegaBytes = 512; //default to half-gig available
@@ -35,4 +36,6 @@ public interface ProgramConstants {
     public static final String kDateFormat_USA_Standard = "yyyy-MM-dd HH:mm:ss";
     public static final String kDateFormat_24_hr_precise = "HH:mm:ss:SSS";
     public static final String kDateFormat_precise_long = "yyyyMMddHHmmssSSS";
+    //task constants
+    public static final int kDefaultTaskTimerSeconds = 180;
 }
