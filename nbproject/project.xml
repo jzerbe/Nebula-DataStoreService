@@ -3,14 +3,29 @@
     <type>org.netbeans.modules.ant.freeform</type>
     <configuration>
         <general-data xmlns="http://www.netbeans.org/ns/freeform-project/1">
+            <name>NebulaDSS</name>
+        </general-data>
+        <general-data xmlns="http://www.netbeans.org/ns/freeform-project/2">
             <!-- Do not use Project Properties customizer when editing this file manually. -->
             <name>NebulaDSS</name>
             <properties/>
             <folders>
                 <source-folder>
+                    <label>NebulaDSS</label>
+                    <location>.</location>
+                    <encoding>windows-1252</encoding>
+                </source-folder>
+                <source-folder>
                     <label>src</label>
                     <type>java</type>
                     <location>src</location>
+                    <encoding>windows-1252</encoding>
+                </source-folder>
+                <source-folder>
+                    <label>test</label>
+                    <type>java</type>
+                    <location>test</location>
+                    <encoding>windows-1252</encoding>
                 </source-folder>
             </folders>
             <ide-actions>
@@ -30,12 +45,19 @@
                     <target>clean</target>
                     <target>dist</target>
                 </action>
+                <action name="test">
+                    <target>junit</target>
+                </action>
             </ide-actions>
             <view>
                 <items>
                     <source-folder style="packages">
                         <label>src</label>
                         <location>src</location>
+                    </source-folder>
+                    <source-folder style="packages">
+                        <label>test</label>
+                        <location>test</location>
                     </source-folder>
                     <source-file>
                         <location>build.xml</location>
@@ -47,14 +69,25 @@
                     <ide-action name="clean"/>
                     <ide-action name="javadoc"/>
                     <ide-action name="run"/>
+                    <ide-action name="test"/>
+                    <action>
+                        <label>compile</label>
+                        <target>compile</target>
+                    </action>
                 </context-menu>
             </view>
             <subprojects/>
         </general-data>
-        <java-data xmlns="http://www.netbeans.org/ns/freeform-project-java/1">
+        <java-data xmlns="http://www.netbeans.org/ns/freeform-project-java/2">
             <compilation-unit>
                 <package-root>src</package-root>
                 <classpath mode="compile">contrib/jetty-6.1.26/jetty-6.1.26.jar;contrib/jetty-6.1.26/jetty-util-6.1.26.jar;contrib/jetty-6.1.26/servlet-api-2.5-20081211.jar;contrib/springframework/spring-1.2.6.jar;contrib/routing/TomP2P-3.2.11.jar;contrib-src/routing/weupnp-0.1.1-sources.jar;contrib/routing/weupnp-0.1.1.jar</classpath>
+                <source-level>1.5</source-level>
+            </compilation-unit>
+            <compilation-unit>
+                <package-root>test</package-root>
+                <unit-tests/>
+                <classpath mode="compile">contrib/junit-4.10.jar;src;build</classpath>
                 <source-level>1.5</source-level>
             </compilation-unit>
         </java-data>

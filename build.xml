@@ -5,52 +5,76 @@
     </description>
 
     <!-- global properties -->
-    <property name="mainclass" value="nebuladss.NebulaDSS"/>
+    <property name="mainclass" value="nebuladss.NebulaDSS" />
 
-    <property name="src" location="src"/>
-    <property name="contrib" location="contrib"/>
-    <property name="build" location="build"/>
-    <property name="dist" location="dist"/>
-    <property name="docs" location="docs"/>
-    <property name="debug" location="debug"/>
+    <property name="src" location="src" />
+    <property name="contrib" location="contrib" />
+    <property name="build" location="build" />
+    <property name="dist" location="dist" />
+    <property name="docs" location="docs" />
+    <property name="debug" location="debug" />
+    <property name="test" location="test" />
 
-    <property name="init.mem.size" value="128m"/>
-    <property name="max.mem.size" value="256m"/>
+    <property name="init.mem.size" value="128m" />
+    <property name="max.mem.size" value="256m" />
 
-    <property name="javac.debug" value="true"/>
-    <property name="optimize" value="true"/>
-    <property name="jdk-version.source" value="1.5"/>
-    <property name="jdk-version.target" value="1.5"/>
+    <property name="javac.debug" value="true" />
+    <property name="optimize" value="true" />
+    <property name="jdk-version.source" value="1.5" />
+    <property name="jdk-version.target" value="1.5" />
 
 
     <target name="init">
         <!-- add the jar libs -->
         <path id="jars">
-            <fileset dir="${contrib}" includes="**/*.jar"/>
+            <fileset dir="${contrib}" includes="**/*.jar" />
+        </path>
+        <!-- junit debug classpath, include built classes -->
+        <path id="junit.classpath">
+            <pathelement location="contrib/junit-4.10.jar" />
+            <pathelement location="${build}" />
+            <pathelement location="${src}" />
         </path>
         <!-- create the time stamp for this build -->
         <tstamp/>
         <!-- Create the build directory structure used by compile -->
-        <mkdir dir="${build}"/>
+        <mkdir dir="${build}" />
     </target>
 
     <target name="compile" depends="init" description="compile the source">
         <javac fork="true" srcdir="${src}" destdir="${build}" debug="${javac.debug}"
         memoryinitialsize="${init.mem.size}" memorymaximumsize="${max.mem.size}"
         target="${jdk-version.target}" source="${jdk-version.source}"
-        optimize="${optimize}" classpathref="jars"/>
+        optimize="${optimize}" classpathref="jars" />
+    </target>
+
+    <target name="junit" depends="compile">
+        <junit fork="yes" printsummary="withOutAndErr" showoutput="true"
+        errorProperty="test.failed" failureProperty="test.failed" filtertrace="false">
+            <formatter type="xml" /> <!-- plain or xml -->
+            <formatter usefile="false" type="brief" />
+            <classpath>
+                <path refid="junit.classpath" />
+                <path refid="jars" />
+            </classpath>
+            <batchtest>
+                <fileset dir="${test}">
+                    <include name="**/*Test*.java" />
+                </fileset>
+            </batchtest>
+        </junit>
     </target>
 
     <target name="copyfiles" description="copy static files into build">
-        <mkdir dir="${build}/webapp"/>
+        <mkdir dir="${build}/webapp" />
         <copy todir="${build}/webapp">
-            <fileset dir="${src}/webapp"/>
+            <fileset dir="${src}/webapp" />
         </copy>
     </target>
 
     <target name="javadoc" depends="compile" description="create component docs">
-        <delete dir="${docs}"/>
-        <mkdir dir="${docs}"/>
+        <delete dir="${docs}" />
+        <mkdir dir="${docs}" />
 
         <javadoc author="true" bottom="${component.title}" destdir="${docs}"
         source="${jdk-version.source}" doctitle="${component.title}"
@@ -61,26 +85,27 @@
 
     <target name="dist" depends="compile, copyfiles" description="generate the distribution">
         <!-- Create the distribution directory -->
-        <mkdir dir="${dist}"/>
+        <mkdir dir="${dist}" />
 
         <!-- put everything in ${build} into the nebuladss-${DSTAMP}.jar file -->
         <jar jarfile="${dist}/nebuladss-${DSTAMP}.jar" basedir="${build}">
             <manifest>
-                <attribute name="Main-Class" value="${mainclass}"/>
+                <attribute name="Main-Class" value="${mainclass}" />
             </manifest>
-            <zipgroupfileset dir="${contrib}" includes="**/*.jar"/>
+            <zipgroupfileset dir="${contrib}" includes="**/*.jar" />
         </jar>
 
         <!-- copy the latest release to standard filename -->
-        <copy file="${dist}/nebuladss-${DSTAMP}.jar" tofile="${dist}/nebuladss.jar"/>
+        <copy file="${dist}/nebuladss-${DSTAMP}.jar" tofile="${dist}/nebuladss.jar" />
     </target>
 
     <target name="run" depends="dist" description="run the dist">
-        <java jar="${dist}/nebuladss.jar" fork="true"/>
+        <java jar="${dist}/nebuladss.jar" fork="true" />
     </target>
 
     <target name="clean" description="clean up">
-        <delete dir="${build}"/>
-        <delete dir="${dist}"/>
+        <delete dir="${build}" />
+        <delete dir="${dist}" />
+        <delete dir="${docs}" />
     </target>
 </project>
