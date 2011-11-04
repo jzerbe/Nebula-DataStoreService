@@ -24,7 +24,7 @@ public class JettyWebServer implements ProgramConstants {
 
     private static JettyWebServer jws_SingleInstance = null;
     protected Server jws_serverInstance = null;
-    protected int jws_serverPortInt = 80;
+    protected int jws_serverPortInt = kWebAppDefaultPortInt;
 
     protected JettyWebServer(int theServerPortInt) {
         jws_serverInstance = new Server(theServerPortInt);

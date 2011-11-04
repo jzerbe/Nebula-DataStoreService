@@ -6,9 +6,9 @@ import static org.junit.Assert.*;
 /**
  * @author Jason Zerbe
  */
-public class MasterServerTest {
+public class HttpCmdClientTest {
 
-    public MasterServerTest() {
+    public HttpCmdClientTest() {
     }
 
     /**
@@ -17,7 +17,7 @@ public class MasterServerTest {
     @Test
     public void testNotifyDown() {
         System.out.println("notifyDown");
-        MasterServer instance = MasterServer.getInstance(true);
+        HttpCmdClient instance = HttpCmdClient.getInstance(true);
         boolean expResult = true;
         boolean result = instance.notifyDown();
         assertEquals(expResult, result);
@@ -29,7 +29,7 @@ public class MasterServerTest {
     @Test
     public void testNotifyUp() {
         System.out.println("notifyUp");
-        MasterServer instance = MasterServer.getInstance(true);
+        HttpCmdClient instance = HttpCmdClient.getInstance(true);
         boolean expResult = true;
         boolean result = instance.notifyUp();
         assertEquals(expResult, result);
@@ -42,7 +42,7 @@ public class MasterServerTest {
     @Test
     public void testIsUUIDUp() {
         System.out.println("isUUIDUp");
-        MasterServer instance = MasterServer.getInstance(true);
+        HttpCmdClient instance = HttpCmdClient.getInstance(true);
         instance.notifyUp();
         boolean expResult = true;
         boolean result = instance.isUUIDUp();

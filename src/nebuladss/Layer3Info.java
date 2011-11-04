@@ -1,5 +1,5 @@
 /*
- * singleton utility class for managing system properties and connections
+ * singleton utility class for getting (IP) Network Layer information
  */
 package nebuladss;
 
@@ -17,75 +17,57 @@ import java.util.logging.Logger;
 /**
  * @author Jason Zerbe
  */
-public class NebulaUtilities implements ProgramConstants {
+public class Layer3Info implements ProgramConstants {
 
-    private static NebulaUtilities nu_singleInstance = null;
-    private boolean nu_DebugOn = false;
-    private boolean nu_isLocalHostBehindNATCache = false;
-    private int nu_TaskTimerSeconds = kDefaultTaskTimerSeconds;
+    private static Layer3Info l3i_singleInstance = null;
+    private boolean l3i_DebugOn = false;
+    private boolean l3i_isNAT_CachedBoolean = false;
 
-    protected NebulaUtilities(boolean theDebugOn) {
-        nu_DebugOn = theDebugOn;
+    protected Layer3Info(boolean theDebugOn) {
+        l3i_DebugOn = theDebugOn;
     }
 
-    public static NebulaUtilities getInstance() {
-        if (nu_singleInstance == null) {
-            nu_singleInstance = new NebulaUtilities(false);
+    public static Layer3Info getInstance() {
+        if (l3i_singleInstance == null) {
+            l3i_singleInstance = new Layer3Info(false);
         }
-        return nu_singleInstance;
+        return l3i_singleInstance;
     }
 
-    public static NebulaUtilities getInstance(boolean theDebugOn) {
-        if (nu_singleInstance == null) {
-            nu_singleInstance = new NebulaUtilities(theDebugOn);
+    public static Layer3Info getInstance(boolean theDebugOn) {
+        if (l3i_singleInstance == null) {
+            l3i_singleInstance = new Layer3Info(theDebugOn);
         }
-        return nu_singleInstance;
+        return l3i_singleInstance;
     }
 
     /**
      * check if this host's address is able to be routed on the WAN
      * @return boolean - is behind a NAT, needs port forwarding
      */
-    public boolean isLocalHostBehindNAT() {
-        if (nu_isLocalHostBehindNATCache) {
-            return nu_isLocalHostBehindNATCache;
+    public boolean isHostBehindNAT() {
+        if (l3i_isNAT_CachedBoolean) {
+            return l3i_isNAT_CachedBoolean;
         }
 
-        String aIPv4AddrStr = getLocalIPAddress(IpAddressType.IPv4);
+        String aIPv4AddrStr = getValidIPAddress(IpAddressType.IPv4);
         if (aIPv4AddrStr == null) {
             return false;
         }
 
-        if (nu_DebugOn) {
+        if (l3i_DebugOn) {
             System.out.println("LocalIPv4 Address = " + aIPv4AddrStr);
         }
 
         String isValidExternalAddressStr = "ipv4=" + aIPv4AddrStr;
         String aURLConnectionParamStr = "opt=nat" + "&" + isValidExternalAddressStr;
-        ArrayList<String> returnArrayList = MasterServer.getInstance().returnServerMethod(aURLConnectionParamStr);
+        ArrayList<String> returnArrayList = HttpCmdClient.getInstance().returnServerMethod(
+                HttpCmdClient.getInstance().getMasterSeverUrlStr(), aURLConnectionParamStr);
         if (returnArrayList.contains(isValidExternalAddressStr)) {
             return false;
         } else {
-            nu_isLocalHostBehindNATCache = true;
+            l3i_isNAT_CachedBoolean = true;
             return true;
-        }
-    }
-
-    /**
-     * set up how often periodic latency and bandwidth checks should run
-     * based on returned master server settings
-     */
-    protected void setPeriodTaskTime() {
-        String aOperationPeriodicTask = "schedule";
-        String aURLConnectionParamStr = "opt=" + aOperationPeriodicTask;
-        ArrayList<String> returnArrayList = MasterServer.getInstance().returnServerMethod(aURLConnectionParamStr);
-        if (returnArrayList.contains(aOperationPeriodicTask)) {
-            for (String returnElement : returnArrayList) {
-                if (returnElement.contains(aOperationPeriodicTask)) {
-                    String returnElementArray[] = returnElement.split(kMasterServerReturnStringSplitStr);
-                    nu_TaskTimerSeconds = Integer.getInteger(returnElementArray[1]);
-                }
-            }
         }
     }
 
@@ -93,12 +75,12 @@ public class NebulaUtilities implements ProgramConstants {
      * gets a valid IP Address from the local machine that is able to be routed
      * @return String
      */
-    public String getLocalIPAddress(IpAddressType theIpAddressType) {
+    public String getValidIPAddress(IpAddressType theIpAddressType) {
         Enumeration<NetworkInterface> aNetworkInterfaceEnumeration = null;
         try {
             aNetworkInterfaceEnumeration = NetworkInterface.getNetworkInterfaces();
         } catch (SocketException ex) {
-            Logger.getLogger(NebulaUtilities.class.getName()).log(Level.SEVERE, null, ex);
+            Logger.getLogger(Layer3Info.class.getName()).log(Level.SEVERE, null, ex);
         }
         while (aNetworkInterfaceEnumeration.hasMoreElements()) {
             NetworkInterface currentNetworkInterface = aNetworkInterfaceEnumeration.nextElement();
@@ -107,7 +89,7 @@ public class NebulaUtilities implements ProgramConstants {
                     continue;
                 }
             } catch (SocketException ex) {
-                Logger.getLogger(NebulaUtilities.class.getName()).log(Level.SEVERE, null, ex);
+                Logger.getLogger(Layer3Info.class.getName()).log(Level.SEVERE, null, ex);
             }
 
             for (InterfaceAddress currentNetworkInterfaceAddress : currentNetworkInterface.getInterfaceAddresses()) {

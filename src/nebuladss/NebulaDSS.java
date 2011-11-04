@@ -59,15 +59,20 @@ public class NebulaDSS implements ProgramConstants {
             }
         } //done processing arguments
 
-        //set bootstrap master server URL
-        MasterServer.getInstance(nd_DebugOn).setMasterSeverUrlStr(nd_MasterServerUrlStr);
-
         //start local filesystem management
         FileSystemManager.getInstance(nd_DebugOn).setMaxAvailableMegaBytes(nd_MaxSizeMegaBytes);
         FileSystemManager.getInstance().setStorageRootPath(nd_RootPathStr);
 
+        //start jetty with servlets that accept GET/POST for file management
+        try {
+            JettyWebServer.getInstance(nd_HttpPortInt).startServer();
+        } catch (Exception ex) {
+            Logger.getLogger(NebulaDSS.class.getName()).log(Level.SEVERE, null, ex);
+            System.exit(1);
+        }
+
         //set up portmapping (if needed)
-        if (NebulaUtilities.getInstance(nd_DebugOn).isLocalHostBehindNAT()) {
+        if (Layer3Info.getInstance(nd_DebugOn).isHostBehindNAT()) {
             try {
                 nd_HttpPortInt = weupnp.getInstance().addPortMapping("TCP", nd_HttpPortInt, kPortMappingDescStr);
             } catch (IOException ex) {
@@ -79,20 +84,13 @@ public class NebulaDSS implements ProgramConstants {
             }
         }
 
-        //start jetty with servlets that accept GET/POST for file management
-        try {
-            JettyWebServer.getInstance(nd_HttpPortInt).startServer();
-        } catch (Exception ex) {
-            Logger.getLogger(NebulaDSS.class.getName()).log(Level.SEVERE, null, ex);
-            System.exit(1);
-        }
-
-        //tell master server about HTTP port once ready
-        MasterServer.getInstance().setHttpPortNumber(nd_HttpPortInt);
-        MasterServer.getInstance().notifyUp();
+        //set master server URL
+        HttpCmdClient.getInstance(nd_DebugOn).setMasterSeverUrlStr(nd_MasterServerUrlStr);
+        //tell master server about HTTP server once ready (Jetty needs to be running before)
+        HttpCmdClient.getInstance().notifyUp();
 
         //echo out what just happened
-        System.out.println("NebulaDSS started with NodeUUID = " + MasterServer.getInstance().getUUID() + "\n"
+        System.out.println("NebulaDSS started with NodeUUID = " + HttpCmdClient.getInstance().getUUID() + "\n"
                 + "--http-port=" + String.valueOf(nd_HttpPortInt) + "\n"
                 + "--root-path=" + nd_RootPathStr + "\n"
                 + "--max-mb=" + String.valueOf(nd_MaxSizeMegaBytes) + "\n");
@@ -106,10 +104,10 @@ public class NebulaDSS implements ProgramConstants {
         @Override
         public void run() {
             //1. remove node from master server - do not confuse other peers
-            MasterServer.getInstance().notifyDown();
+            HttpCmdClient.getInstance().notifyDown();
 
             //2. remove portmapping (if needed) - make sure UPnP IGD does not overload
-            if (NebulaUtilities.getInstance().isLocalHostBehindNAT()) {
+            if (Layer3Info.getInstance().isHostBehindNAT()) {
                 try {
                     weupnp.getInstance().removePortMapping("TCP", nd_HttpPortInt);
                 } catch (IOException ex) {

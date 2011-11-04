@@ -57,7 +57,7 @@ public class FileSystemManager {
             File aFileOutput = new File(aFileOutputPathStr);
             boolean aFileStoreWorked = theFileToStore.renameTo(aFileOutput);
             if (aFileStoreWorked) {
-                MasterServer.getInstance().putFile(theNameSpace, theFileName, theVersionNumber);
+                HttpCmdClient.getInstance().putFile(theNameSpace, theFileName, theVersionNumber);
                 System.out.println(this.getClass().getName() + " - putFile store - " + theNameSpace + ":" + theFileName + ":" + theVersionNumber);
             }
         } else {
