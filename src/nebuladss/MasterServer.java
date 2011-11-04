@@ -93,6 +93,32 @@ public class MasterServer implements ProgramConstants {
     }
 
     /**
+     * check to see if the pass uuid string is online according to master server
+     * @return boolean - does master server think uuid online?
+     */
+    public boolean isUUIDUp() {
+        String aOperationCheckOnlineUUID = "online-uuid";
+        String aURLConnectionParamStr = "opt=" + aOperationCheckOnlineUUID
+                + "&uuid=" + ms_NodeUUID;
+        ArrayList<String> returnArrayList = MasterServer.getInstance().returnServerMethod(aURLConnectionParamStr);
+
+        //output debug
+        if (ms_DebugOn) {
+            for (int i = 0; i < returnArrayList.size(); i++) {
+                System.out.println(this.getClass().getName() + " - isUUIDUp - " + returnArrayList.get(i));
+            }
+        }
+
+        //does the master server think the UUID is up?
+        for (int i = 0; i < returnArrayList.size(); i++) {
+            if (returnArrayList.get(i).contains("online=true")) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
      * notify the master server that this node is down/offline
      * @return boolean - was this node successfully removed?
      */

@@ -67,4 +67,8 @@ public class JettyWebServer implements ProgramConstants {
     public void stopServer() throws Exception {
         jws_serverInstance.stop();
     }
+
+    public boolean isRunning() {
+        return jws_serverInstance.isRunning();
+    }
 }

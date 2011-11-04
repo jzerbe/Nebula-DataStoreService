@@ -1,9 +1,13 @@
 <?php
 
+//load in the database configuration
+require('dbconfig.php');
+
 /**
  * open a connection to the SQL database and create tables if they do not exist
  * @global DbType $myDbType
  * @global SQL_LINK $myGlobalSqlResourceObject
+ * @global string $myDbPath
  * @global string $myDbName
  * @global string $myNodesTable
  * @global string $kUUIDStr
@@ -19,20 +23,14 @@
  * @global string $kVersionStr 
  */
 function open() {
-    global $myDbType, $myGlobalSqlResourceObject, $myDbName; //GLOBAL DB INFO
+    global $myDbType, $myGlobalSqlResourceObject, $myDbPath, $myDbName; //GLOBAL DB INFO
     global $myNodesTable, $kUUIDStr, $kAddrStr, $kWebStr, $kOnlineStr; //Node
     global $myUptimeTable, $kOnlineTimeStr, $kOfflineTimeStr; //Uptime info
     global $myFilesTable, $kNameSpaceStr, $kFileNameStr, $kVersionStr; //Files
 
-    $aSqlNodesTableStr = "CREATE TABLE IF NOT EXISTS $myNodesTable"
-            + "(id INTEGER PRIMARY KEY ASC, $kUUIDStr TEXT, $kAddrStr TEXT,"
-            + "$kWebStr INTEGER, $kOnlineStr INTEGER)";
-    $aSqlUptimeTableStr = "CREATE TABLE IF NOT EXISTS $myUptimeTable"
-            + "(id INTEGER PRIMARY KEY ASC, $kUUIDStr TEXT, "
-            + "$kOnlineTimeStr INTEGER, $kOfflineTimeStr INTEGER)";
-    $aSqlFilesTableStr = "CREATE TABLE IF NOT EXISTS $myFilesTable "
-            + "(id INTEGER PRIMARY KEY ASC, $kUUIDStr TEXT, "
-            + "$kNameSpaceStr TEXT, $kFileNameStr TEXT, $kVersionStr INTEGER)";
+    $aSqlNodesTableStr = "CREATE TABLE IF NOT EXISTS $myNodesTable (id INTEGER PRIMARY KEY ASC, $kUUIDStr TEXT, $kAddrStr TEXT, $kWebStr INTEGER, $kOnlineStr INTEGER)";
+    $aSqlUptimeTableStr = "CREATE TABLE IF NOT EXISTS $myUptimeTable (id INTEGER PRIMARY KEY ASC, $kUUIDStr TEXT, $kOnlineTimeStr INTEGER, $kOfflineTimeStr INTEGER)";
+    $aSqlFilesTableStr = "CREATE TABLE IF NOT EXISTS $myFilesTable (id INTEGER PRIMARY KEY ASC, $kUUIDStr TEXT, $kNameSpaceStr TEXT, $kFileNameStr TEXT, $kVersionStr INTEGER)";
 
     if ($myDbType == DbType::SQLite3) {
         $myGlobalSqlResourceObject = new SQLite3("$myDbPath/$myDbName");
