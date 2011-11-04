@@ -44,6 +44,7 @@ $kVersionStr = 'version';
 $kOptStr = 'opt';
 $kIPv4Str = 'ipv4';
 $kOperationNat = 'nat';
+$kOperationLatency = 'latency';
 $kOperationPeriodicTask = 'schedule';
 $kOperationGetOnlineStr = 'online';
 $kOperationGetOfflineStr = 'offline';

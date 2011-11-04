@@ -24,6 +24,12 @@ if (isset($_GET[$kOptStr]) && ($_GET[$kOptStr] != '')) {
             //do something when there is a match?
         }
         echo "$kOptStr=$kOperationNat\n$kIPv4Str=$address\n";
+    } elseif ($opt == $kOperationLatency) {
+        if (isset($_GET[$kUUIDStr]) && ($_GET[$kUUIDStr] != '')) {
+            echo "$kOptStr=$kOperationLatency\n$kUUIDStr=";
+        } else {
+            echo "$kOptStr=$kOperationLatency\n";
+        }
     } elseif ($opt == $kOperationPeriodicTask) { //how often should periodic checks run?
         echo "$kOptStr=$kOperationPeriodicTask\n$kOperationPeriodicTask=$kTaskTimerSeconds\n";
     } elseif ($opt == $kOperationGetOnlineStr) { //get a list of online nodes

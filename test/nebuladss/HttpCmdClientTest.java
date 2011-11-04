@@ -49,4 +49,17 @@ public class HttpCmdClientTest {
         assertEquals(expResult, result);
         instance.notifyDown();
     }
+
+    /**
+     * make sure the RTT is > 40 milliseconds for any HTTP server request/response
+     */
+    @Test
+    public void testGetPeerHttpRttMillis() {
+        System.out.println("getHttpRttMillis");
+        HttpCmdClient instance = HttpCmdClient.getInstance(true);
+        long expMin = 40;
+        long result = instance.getPeerHttpRttMillis(instance.getMasterSeverUrlStr());
+        System.out.println(result);
+        assertEquals((expMin < result), true);
+    }
 }

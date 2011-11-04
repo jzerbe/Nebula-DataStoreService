@@ -83,7 +83,7 @@ public class HttpCmdClient implements ProgramConstants {
      * @return boolean - did contacting the master server work?
      */
     public boolean putFile(String theNameSpace, String theFileName, String theVersionNumber) {
-        String aURLConnectionParamStr = "opt=put" + "&uuid=" + hcc_NodeUUID
+        String aURLConnectionParamStr = "opt=put" + "&uuid=" + getUUID()
                 + "&namespace=" + theNameSpace + "&filename=" + theFileName + "&version=";
         if (theVersionNumber.equals("new")) {
             aURLConnectionParamStr.concat(NebulaDSS.getFormattedCurrentDate(kDateFormat_precise_long));
@@ -94,11 +94,25 @@ public class HttpCmdClient implements ProgramConstants {
     }
 
     /**
+     * HTTP request/response time in Milliseconds - elapsed time of operation
+     * this is used for gauging RTT between this node and random HTTP server
+     * @param theUrlBase String
+     * @return long - RTT in Milliseconds of this operation
+     */
+    public long getPeerHttpRttMillis(String theUrlBase) {
+        long aStartTimeMillis = System.currentTimeMillis();
+        String aUrlArgs = "opt=latency";
+        returnServerMethod(theUrlBase, aUrlArgs);
+        long aElapsedTimeMillis = System.currentTimeMillis() - aStartTimeMillis;
+        return aElapsedTimeMillis;
+    }
+
+    /**
      * notify master server (calling) node is up, empty response = no errors
      * @return boolean - did server respond with empty page?
      */
     public boolean notifyUp() {
-        String aURLConnectionParamStr = "opt=ping" + "&uuid=" + hcc_NodeUUID
+        String aURLConnectionParamStr = "opt=ping" + "&uuid=" + getUUID()
                 + "&http=" + String.valueOf(JettyWebServer.getInstance().getServerPortInt());
         return voidServerMethod(hcc_theMasterServerUrlStr, aURLConnectionParamStr);
     }
@@ -110,7 +124,7 @@ public class HttpCmdClient implements ProgramConstants {
     public boolean isUUIDUp() {
         String aOperationCheckOnlineUUID = "online-uuid";
         String aURLConnectionParamStr = "opt=" + aOperationCheckOnlineUUID
-                + "&uuid=" + hcc_NodeUUID;
+                + "&uuid=" + getUUID();
         ArrayList<String> returnArrayList = returnServerMethod(hcc_theMasterServerUrlStr, aURLConnectionParamStr);
         if (returnArrayList == null) {
             return false;
@@ -137,7 +151,7 @@ public class HttpCmdClient implements ProgramConstants {
      * @return boolean - did server respond with empty page?
      */
     public boolean notifyDown() {
-        String aURLConnectionParamStr = "opt=ping" + "&uuid=" + hcc_NodeUUID
+        String aURLConnectionParamStr = "opt=ping" + "&uuid=" + getUUID()
                 + "&http=" + String.valueOf(JettyWebServer.getInstance().getServerPortInt())
                 + "&down=true";
         return voidServerMethod(hcc_theMasterServerUrlStr, aURLConnectionParamStr);
