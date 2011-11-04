@@ -18,7 +18,7 @@ public interface ProgramConstants {
             + kHttpArgStr + "=[port number (default=2020)] "
             + kMasterServerArgStr + "=[url string of master server]"
             + kRootStorageArgStr + "=[root storage directory path]"
-            + kMaxMegaBytesUsageArgStr + "=[maximum filesystem usage in megabytes]";
+            + kMaxMegaBytesUsageArgStr + "=[maximum filesystem usage in megabytes (soft quota)]";
     //port mapping for HTTP interface
     public static final String kPortMappingDescStr = "port mapping for NebulaDSS HTTP";
     public static final int kPortMappingRetryOffsetInt = 11;
