@@ -47,22 +47,29 @@ public class FileSystemManager {
     /**
      * store File or push it to another node if there is not enough space locally
      * @param theNameSpace String
-     * @param theVersionNumber String
      * @param theFileName String
      * @param theFileToStore File
+     * @return boolean - was the file stored?
      */
-    public void putFile(String theNameSpace, String theVersionNumber, String theFileName, File theFileToStore) {
+    public boolean putFile(String theNameSpace, String theFileName, File theFileToStore) {
         if (getCurrentAvailableMegaBytes() > getMegaBytes(theFileToStore.length())) {
-            String aFileOutputPathStr = getFormattedFilePathStr(fsm_StorageRootPathStr, theNameSpace, theVersionNumber, theFileName);
+            String aFileOutputPathStr = getFormattedFilePathStr(fsm_StorageRootPathStr, theNameSpace, theFileName);
             File aFileOutput = new File(aFileOutputPathStr);
             boolean aFileStoreWorked = theFileToStore.renameTo(aFileOutput);
             if (aFileStoreWorked) {
-                HttpCmdClient.getInstance().putFile(theNameSpace, theFileName, theVersionNumber);
-                System.out.println(this.getClass().getName() + " - putFile store - " + theNameSpace + ":" + theFileName + ":" + theVersionNumber);
+                HttpCmdClient.getInstance().putFile(theNameSpace, theFileName); //log to master server
+                if (fsm_DebugOn) {
+                    System.out.println(this.getClass().getName() + " - putFile store - " + theNameSpace + ":" + theFileName);
+                }
             }
+            return aFileStoreWorked;
         } else {
             //TODO: push file to other "close" location
-            System.out.println(this.getClass().getName() + " - putFile push - " + theNameSpace + ":" + theFileName + ":" + theVersionNumber);
+            if (fsm_DebugOn) {
+                System.out.println(this.getClass().getName() + " - putFile push - " + theNameSpace + ":" + theFileName);
+            }
+            //TODO: get return of remote put, for now false
+            return false;
         }
     }
 
@@ -72,11 +79,11 @@ public class FileSystemManager {
      * @param theFileName String
      * @return File
      */
-    public File getFile(String theNameSpace, String theVersionNumber, String theFileName) {
+    public File getFile(String theNameSpace, String theFileName) {
         if ((fsm_StorageRootPathStr == null) || (theNameSpace == null) || (theFileName == null)) {
             return null;
         } else {
-            String aFilePathStr = getFormattedFilePathStr(fsm_StorageRootPathStr, theNameSpace, theVersionNumber, theFileName);
+            String aFilePathStr = getFormattedFilePathStr(fsm_StorageRootPathStr, theNameSpace, theFileName);
             File aFile = new File(aFilePathStr);
             if (aFile.isFile()) {
                 if (fsm_DebugOn) {
@@ -97,14 +104,12 @@ public class FileSystemManager {
      * helper function for properly formatting the file storage path
      * @param theStorageRootPathStr String
      * @param theNameSpace String
-     * @param theVersionNumber String
      * @param theFileName String
      * @return String
      */
     protected String getFormattedFilePathStr(String theStorageRootPathStr,
-            String theNameSpace, String theVersionNumber, String theFileName) {
-        return (theStorageRootPathStr + "/" + theNameSpace + "/"
-                + theVersionNumber + "/" + theFileName);
+            String theNameSpace, String theFileName) {
+        return (theStorageRootPathStr + "/" + theNameSpace + "/" + theFileName);
     }
 
     /**
@@ -131,12 +136,16 @@ public class FileSystemManager {
      */
     protected long getFileSizeBytes(File theRootStorageFile) {
         long aReturnFolderSize = 0;
-        File[] aStorageFileArray = theRootStorageFile.listFiles();
-        for (File aStorageFile : aStorageFileArray) {
-            if (aStorageFile.isDirectory()) {
-                aReturnFolderSize += getFileSizeBytes(aStorageFile);
-            } else {
-                aReturnFolderSize += aStorageFile.length();
+        if (theRootStorageFile.isFile()) {
+            aReturnFolderSize += theRootStorageFile.length();
+        } else {
+            File[] aStorageFileArray = theRootStorageFile.listFiles();
+            for (File aStorageFile : aStorageFileArray) {
+                if (aStorageFile.isDirectory()) {
+                    aReturnFolderSize += getFileSizeBytes(aStorageFile);
+                } else {
+                    aReturnFolderSize += aStorageFile.length();
+                }
             }
         }
         return aReturnFolderSize;

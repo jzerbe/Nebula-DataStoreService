@@ -36,7 +36,7 @@ function open() {
             . "INTEGER, $kOfflineTimeStr INTEGER)";
     $aSqlFilesTableStr = "CREATE TABLE IF NOT EXISTS $myFilesTable (id "
             . "INTEGER PRIMARY KEY ASC, $kUUIDStr TEXT, $kNameSpaceStr TEXT, "
-            . "$kFileNameStr TEXT, $kVersionStr INTEGER)";
+            . "$kFileNameStr TEXT)";
 
     if ($myDbType == DbType::SQLite3) {
         $myGlobalSqlResourceObject = new SQLite3("$myDbPath/$myDbName");

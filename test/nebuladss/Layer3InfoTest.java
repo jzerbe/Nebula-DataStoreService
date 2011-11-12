@@ -21,7 +21,7 @@ public class Layer3InfoTest {
         IpAddressType theIpAddressType = IpAddressType.IPv4;
         Layer3Info instance = Layer3Info.getInstance(true);
         String result = instance.getValidIPAddress(theIpAddressType);
-        assertEquals((result != null), true);
+        assertEquals(true, (result != null));
     }
 
     /**
@@ -32,7 +32,7 @@ public class Layer3InfoTest {
         System.out.println("isHostBehindNAT");
         Layer3Info instance = Layer3Info.getInstance(true);
         boolean result = instance.isHostBehindNAT();
-        assertEquals(result, (true || false));
+        assertEquals((true || false), result);
         System.out.println(result);
     }
 }

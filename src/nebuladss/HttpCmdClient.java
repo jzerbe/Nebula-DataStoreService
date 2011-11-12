@@ -79,18 +79,33 @@ public class HttpCmdClient implements ProgramConstants {
      * is new then it needs to be timestamped to differentiated between the versions
      * @param theNameSpace String
      * @param theFileName String
-     * @param theVersionNumber String
      * @return boolean - did contacting the master server work?
      */
-    public boolean putFile(String theNameSpace, String theFileName, String theVersionNumber) {
+    public boolean putFile(String theNameSpace, String theFileName) {
         String aURLConnectionParamStr = "opt=put" + "&uuid=" + getUUID()
-                + "&namespace=" + theNameSpace + "&filename=" + theFileName + "&version=";
-        if (theVersionNumber.equals("new")) {
-            aURLConnectionParamStr.concat(NebulaDSS.getFormattedCurrentDate(kDateFormat_precise_long));
-        } else {
-            aURLConnectionParamStr.concat(theVersionNumber);
-        }
+                + "&namespace=" + theNameSpace + "&filename=" + theFileName;
         return voidServerMethod(hcc_theMasterServerUrlStr, aURLConnectionParamStr);
+    }
+
+    /**
+     * get an ArrayList of URL strings
+     * @param theNameSpace String
+     * @param theFileName String
+     * @return ArrayList<String>
+     */
+    public ArrayList<String> getFile(String theNameSpace, String theFileName) {
+        String aURLConnectionParamStr = "opt=get" + "&namespace=" + theNameSpace
+                + "&filename=" + theFileName;
+        ArrayList<String> returnArrayList = returnServerMethod(hcc_theMasterServerUrlStr, aURLConnectionParamStr);
+
+        //output debug
+        if (hcc_DebugOn) {
+            for (int i = 0; i < returnArrayList.size(); i++) {
+                System.out.println(this.getClass().getName() + " - getFile - " + returnArrayList.get(i));
+            }
+        }
+
+        return returnArrayList;
     }
 
     /**
@@ -193,7 +208,9 @@ public class HttpCmdClient implements ProgramConstants {
         try {
             String aString = null;
             while ((aString = aBufferedReader.readLine()) != null) {
-                returnArrayList.add(aString);
+                if (!aString.equals("")) {
+                    returnArrayList.add(aString);
+                }
             }
         } catch (IOException ex) {
             Logger.getLogger(HttpCmdClient.class.getName()).log(Level.SEVERE, null, ex);

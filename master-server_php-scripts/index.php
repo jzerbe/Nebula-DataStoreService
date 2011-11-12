@@ -65,20 +65,19 @@ if (isset($_GET[$kOptStr]) && ($_GET[$kOptStr] != '')) {
         if ((isset($_GET[$kFileNameStr]) && ($_GET[$kFileNameStr] != ''))
                 && (isset($_GET[$kFileNameStr]) && ($_GET[$kFileNameStr] != ''))
                 && (isset($_GET[$kNameSpaceStr]) && ($_GET[$kNameSpaceStr] != ''))
-                && (isset($_GET[$kVersionStr]) && ($_GET[$kVersionStr] != ''))
                 && (isset($_GET[$kUUIDStr]) && ($_GET[$kUUIDStr] != ''))) { //have params for SQL
             open();
-            putFile($_GET[$kUUIDStr], $_GET[$kNameSpaceStr], $_GET[$kFileNameStr], $_GET[$kVersionStr]);
+            putFile($_GET[$kUUIDStr], $_GET[$kNameSpaceStr], $_GET[$kFileNameStr]);
             close();
         } else {
             echo "$kGlobalDebugStrFlag - '$opt' does not have necessary parameters present in your GET request";
         }
     } elseif ($opt == $kOperationGet) { //grab newline delimited dump of nodes with file (URLs)
         if ((isset($_GET[$kFileNameStr]) && ($_GET[$kFileNameStr] != ''))
-                && (isset($_GET[$kFileNameStr]) && ($_GET[$kFileNameStr] != ''))
-                && (isset($_GET[$kNameSpaceStr]) && ($_GET[$kNameSpaceStr] != ''))
-                && (isset($_GET[$kVersionStr]) && ($_GET[$kVersionStr] != ''))) { //have params for SQL
-            //do query
+                && (isset($_GET[$kNameSpaceStr]) && ($_GET[$kNameSpaceStr] != ''))) { //have params for SQL
+            open();
+            getFile($_GET[$kNameSpaceStr], $_GET[$kFileNameStr]);
+            close();
         } else {
             echo "$kGlobalDebugStrFlag - '$opt' does not have necessary parameters present in your GET request";
         }
@@ -93,6 +92,55 @@ if (isset($_GET[$kOptStr]) && ($_GET[$kOptStr] != '')) {
 /** database functions follow - do not touch unless you know what you are doing */
 
 /**
+ * retrieve newline URL dump of locations of a file
+ * @global DbType $myDbType
+ * @global SQL_LINK $myGlobalSqlResourceObject
+ * @global string $myFilesTable
+ * @global string $kUUIDStr
+ * @global string $kNameSpaceStr
+ * @global string $kFileNameStr
+ * @global string $myNodesTable
+ * @global string $kAddrStr
+ * @global string $kWebStr
+ * @global string $kOnlineStr
+ * @global int $kMaxFetchNodes
+ * @param string $theNameSpaceStr
+ * @param string $theFileNameStr 
+ */
+function getFile($theNameSpaceStr, $theFileNameStr) {
+    global $myDbType, $myGlobalSqlResourceObject; //GLOBAL DB INFO
+    global $myFilesTable, $kUUIDStr, $kNameSpaceStr, $kFileNameStr; //File table specific
+    global $myNodesTable, $kAddrStr, $kWebStr, $kOnlineStr, $kMaxFetchNodes; //Node table shiz
+
+    $aSqlStr = "SELECT $myFilesTable.$kUUIDStr, $myNodesTable.$kAddrStr, "
+            . "$myNodesTable.$kWebStr, $myFilesTable.$kNameSpaceStr, "
+            . "$myFilesTable.$kFileNameStr FROM $myFilesTable, $myNodesTable "
+            . "WHERE $myFilesTable.$kUUIDStr=$myNodesTable.$kUUIDStr "
+            . "AND $myFilesTable.$kNameSpaceStr='$theNameSpaceStr' AND "
+            . "$myFilesTable.$kFileNameStr='$theFileNameStr' AND "
+            . "$myNodesTable.$kOnlineStr=1 LIMIT $kMaxFetchNodes";
+
+    if ($myDbType == DbType::SQLite3) {
+        $results = $myGlobalSqlResourceObject->query($aSqlStr);
+        while ($row = $results->fetchArray(SQLITE3_ASSOC)) {
+            if (!isset($row[$kAddrStr]))
+                continue;
+            echo 'http://' . $row[$kAddrStr] . ':' . $row[$kWebStr] . "/files?$kNameSpaceStr="
+            . $row[$kNameSpaceStr] . "&$kFileNameStr=" . $row[$kFileNameStr] . "\n";
+        }
+    } elseif ($myDbType == DbType::MySQL) {
+        $results = mysql_query($aSqlStr, $myGlobalSqlResourceObject)
+                or die(mysql_errno($myGlobalSqlResourceObject));
+        while ($row = mysql_fetch_array($result, MYSQL_ASSOC)) {
+            if (!isset($row[$kAddrStr]))
+                continue;
+            echo 'http://' . $row[$kAddrStr] . ':' . $row[$kWebStr] . "/files?$kNameSpaceStr="
+            . $row[$kNameSpaceStr] . "&$kFileNameStr=" . $row[$kFileNameStr] . "\n";
+        }
+    }
+}
+
+/**
  * record that a certain node now contains a copy of a certain file
  * @global DbType $myDbType
  * @global SQL_LINK $myGlobalSqlResourceObject
@@ -100,21 +148,19 @@ if (isset($_GET[$kOptStr]) && ($_GET[$kOptStr] != '')) {
  * @global string $kUUIDStr
  * @global string $kNameSpaceStr
  * @global string $kFileNameStr
- * @global string $kVersionStr
  * @param string $theNodeUUID
  * @param string $theNameSpaceStr
  * @param string $theFileNameStr
- * @param int $theVersionInt 
  */
-function putFile($theNodeUUID, $theNameSpaceStr, $theFileNameStr, $theVersionInt) {
+function putFile($theNodeUUID, $theNameSpaceStr, $theFileNameStr) {
     global $myDbType, $myGlobalSqlResourceObject; //GLOBAL DB INFO
-    global $myFilesTable, $kUUIDStr, $kNameSpaceStr, $kFileNameStr, $kVersionStr; //File table specific
+    global $myFilesTable, $kUUIDStr, $kNameSpaceStr, $kFileNameStr; //File table specific
 
     $aSqlCountStr = "SELECT COUNT($kUUIDStr) FROM $myFilesTable WHERE "
             . "$kUUIDStr='$theNodeUUID' AND $kNameSpaceStr='$theNameSpaceStr' "
-            . "AND $kFileNameStr='$theFileNameStr' AND $kVersionStr=$theVersionInt";
+            . "AND $kFileNameStr='$theFileNameStr'";
     $aSqlInsertStr = "INSERT INTO $myFilesTable VALUES(NULL, '$theNodeUUID', "
-            . "'$theNameSpaceStr', '$theFileNameStr', $theVersionInt)";
+            . "'$theNameSpaceStr', '$theFileNameStr')";
 
     if ($myDbType == DbType::SQLite3) {
         $count = $myGlobalSqlResourceObject->querySingle($aSqlCountStr);
@@ -322,8 +368,10 @@ function setNodeOffline($uuid) {
 
     if ($myDbType == DbType::SQLite3) {
         $myGlobalSqlResourceObject->exec($aSqlStr);
+        $myGlobalSqlResourceObject->exec($aSqlUptimeStr);
     } elseif ($myDbType == DbType::MySQL) {
         mysql_query($aSqlStr, $myGlobalSqlResourceObject) or die(mysql_errno());
+        mysql_query($aSqlUptimeStr, $myGlobalSqlResourceObject) or die(mysql_errno());
     }
 }
 
