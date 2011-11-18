@@ -63,11 +63,15 @@ public class Layer3Info implements ProgramConstants {
         String aURLConnectionParamStr = "opt=nat" + "&" + isValidExternalAddressStr;
         ArrayList<String> returnArrayList = HttpCmdClient.getInstance().returnServerMethod(
                 HttpCmdClient.getInstance().getMasterSeverUrlStr(), aURLConnectionParamStr);
-        if (returnArrayList.contains(isValidExternalAddressStr)) {
+        if (returnArrayList == null) {
             return false;
         } else {
-            l3i_isNAT_CachedBoolean = true;
-            return true;
+            if (returnArrayList.contains(isValidExternalAddressStr)) {
+                return false;
+            } else {
+                l3i_isNAT_CachedBoolean = true;
+                return true;
+            }
         }
     }
 

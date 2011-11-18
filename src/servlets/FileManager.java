@@ -39,7 +39,13 @@ public class FileManager extends HttpServlet implements ProgramConstants {
 
                 //push the file object and associated parameters to the filesystem (or other node)
                 FileSystemManager.getInstance().putFile(namespace, filename, aFileUpload);
+            } else {
+                System.err.println("problem with namespace or filename parameters");
             }
+        } else if (aFileUpload == null) {
+            System.err.println("aFileUpload is null");
+        } else {
+            System.err.println("problem with aFileUpload");
         }
     }
 

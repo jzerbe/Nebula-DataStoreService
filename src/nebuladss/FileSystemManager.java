@@ -66,7 +66,7 @@ public class FileSystemManager {
         } else {
             //TODO: push file to other "close" location
             if (fsm_DebugOn) {
-                System.out.println(this.getClass().getName() + " - putFile push - " + theNameSpace + ":" + theFileName);
+                System.out.println(this.getClass().getName() + " - putFile push (not implemented) - " + theNameSpace + ":" + theFileName);
             }
             //TODO: get return of remote put, for now false
             return false;

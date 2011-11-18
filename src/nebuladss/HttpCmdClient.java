@@ -100,8 +100,10 @@ public class HttpCmdClient implements ProgramConstants {
 
         //output debug
         if (hcc_DebugOn) {
-            for (int i = 0; i < returnArrayList.size(); i++) {
-                System.out.println(this.getClass().getName() + " - getFile - " + returnArrayList.get(i));
+            if (returnArrayList != null) {
+                for (int i = 0; i < returnArrayList.size(); i++) {
+                    System.out.println(this.getClass().getName() + " - getFile - " + returnArrayList.get(i));
+                }
             }
         }
 
@@ -194,6 +196,11 @@ public class HttpCmdClient implements ProgramConstants {
      * @return ArrayList<String>
      */
     protected ArrayList<String> returnServerMethod(String theUrlBase, String theUrlArgs) {
+        //be able to function w/o master server
+        if ((theUrlBase == null) || (theUrlBase.contains(kMasterServerNoUrlStr))) {
+            return null;
+        }
+
         //create the HTTP buffered reader
         BufferedReader aBufferedReader = null;
         try {

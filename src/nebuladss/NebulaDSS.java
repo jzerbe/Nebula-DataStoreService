@@ -48,8 +48,6 @@ public class NebulaDSS implements ProgramConstants {
      * @param args String[]
      */
     public static void main(String[] args) {
-        Runtime.getRuntime().addShutdownHook(new RunWhenShuttingDown());
-
         for (String currentArg : args) {
             if (currentArg.contains("-h")) {
                 System.out.println(kUsageStr);
@@ -58,6 +56,9 @@ public class NebulaDSS implements ProgramConstants {
                 setGlobalValues(currentArg);
             }
         } //done processing arguments
+
+        //shutdown hook after arg proc, otherwise do un-needed traffic
+        Runtime.getRuntime().addShutdownHook(new RunWhenShuttingDown());
 
         //start local filesystem management
         FileSystemManager.getInstance(nd_DebugOn).setMaxAvailableMegaBytes(nd_MaxSizeMegaBytes);
@@ -70,6 +71,9 @@ public class NebulaDSS implements ProgramConstants {
             Logger.getLogger(NebulaDSS.class.getName()).log(Level.SEVERE, null, ex);
             System.exit(1);
         }
+
+        //set master server URL
+        HttpCmdClient.getInstance(nd_DebugOn).setMasterSeverUrlStr(nd_MasterServerUrlStr);
 
         //set up portmapping (if needed)
         if (Layer3Info.getInstance(nd_DebugOn).isHostBehindNAT()) {
@@ -84,16 +88,15 @@ public class NebulaDSS implements ProgramConstants {
             }
         }
 
-        //set master server URL
-        HttpCmdClient.getInstance(nd_DebugOn).setMasterSeverUrlStr(nd_MasterServerUrlStr);
         //tell master server about HTTP server once ready (Jetty needs to be running before)
         HttpCmdClient.getInstance().notifyUp();
 
         //echo out what just happened
         System.out.println("NebulaDSS started with NodeUUID = " + HttpCmdClient.getInstance().getUUID() + "\n"
-                + "--http-port=" + String.valueOf(nd_HttpPortInt) + "\n"
-                + "--root-path=" + nd_RootPathStr + "\n"
-                + "--max-mb=" + String.valueOf(nd_MaxSizeMegaBytes) + "\n");
+                + kMasterServerArgStr + "=" + nd_MasterServerUrlStr + "\n"
+                + kHttpArgStr + "=" + String.valueOf(nd_HttpPortInt) + "\n"
+                + kRootStorageArgStr + "=" + nd_RootPathStr + "\n"
+                + kMaxMegaBytesUsageArgStr + "=" + String.valueOf(nd_MaxSizeMegaBytes) + "\n");
     }
 
     /**
