@@ -211,7 +211,7 @@ public class HttpCmdClient implements ProgramConstants {
         }
 
         //read from the HTTP stream
-        ArrayList<String> returnArrayList = new ArrayList();
+        ArrayList<String> returnArrayList = new ArrayList<String>();
         try {
             String aString = null;
             while ((aString = aBufferedReader.readLine()) != null) {

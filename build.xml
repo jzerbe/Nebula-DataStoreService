@@ -46,7 +46,9 @@
         <javac fork="${javac.fork}" srcdir="${src.dir}" destdir="${src.build.dir}" debug="${javac.debug}"
         memoryinitialsize="${init.mem.size}" memorymaximumsize="${max.mem.size}"
         target="${jdk-version.target}" source="${jdk-version.source}"
-        optimize="${javac.optimize}" classpathref="jars.classpath" />
+        optimize="${javac.optimize}" classpathref="jars.classpath">
+            <compilerarg value="-Xlint" />
+        </javac>
     </target>
     
     <target name="compile-tests" depends="compile-source" description="compile the test classes">
@@ -63,7 +65,9 @@
         <javac fork="${javac.fork}" srcdir="${test.dir}" destdir="${test.build.dir}" debug="${javac.debug}"
         memoryinitialsize="${init.mem.size}" memorymaximumsize="${max.mem.size}"
         target="${jdk-version.target}" source="${jdk-version.source}"
-        optimize="${javac.optimize}" classpathref="junit.classpath" />
+        optimize="${javac.optimize}" classpathref="junit.classpath">
+            <compilerarg value="-Xlint" />
+        </javac>
     </target>
 
     <target name="junit" depends="compile-tests">

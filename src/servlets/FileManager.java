@@ -8,13 +8,21 @@ package servlets;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
+import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import javax.servlet.ServletConfig;
+import javax.servlet.ServletException;
 import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import nebuladss.FileSystemManager;
+import nebuladss.HttpCmdClient;
 import nebuladss.ProgramConstants;
+import org.apache.commons.fileupload.FileItem;
+import org.apache.commons.fileupload.FileUploadException;
+import org.apache.commons.fileupload.disk.DiskFileItemFactory;
+import org.apache.commons.fileupload.servlet.ServletFileUpload;
 
 /**
  * handles POST requests for PUT file operation
@@ -24,53 +32,97 @@ import nebuladss.ProgramConstants;
  */
 public class FileManager extends HttpServlet implements ProgramConstants {
 
+    private File myTmpDir;
+
     public FileManager() {
     }
 
     @Override
+    public void init(ServletConfig config) throws ServletException {
+        super.init(config);
+
+        myTmpDir = new File(FileSystemManager.getInstance().getStorageTmpPath());
+        if (!myTmpDir.exists()) {
+            createDirectory(FileSystemManager.getInstance().getStorageTmpPath());
+        }
+        if (!myTmpDir.isDirectory()) {
+            throw new ServletException(FileSystemManager.getInstance().getStorageTmpPath() + " is not a directory");
+        }
+
+        String rootPath = FileSystemManager.getInstance().getStorageRootPath();
+        File aDestDir = new File(rootPath);
+        if (!aDestDir.exists()) {
+            createDirectory(rootPath);
+        }
+        if (!aDestDir.isDirectory()) {
+            throw new ServletException(FileSystemManager.getInstance().getStorageRootPath() + " is not a directory");
+        }
+
+    }
+
+    /**
+     * based largely on http://www.servletworld.com/servlet-tutorials/servlet-file-upload-example.html
+     * @param req HttpServletRequest
+     * @param resp HttpServletResponse
+     */
+    @Override
     protected void doPost(HttpServletRequest req, HttpServletResponse resp) {
-        File aFileUpload = (File) req.getAttribute("file");
-        if (aFileUpload != null && aFileUpload.exists() && !aFileUpload.isDirectory()) {
-            String filename = req.getParameter("filename");
-            String namespace = req.getParameter("namespace");
+        if (ServletFileUpload.isMultipartContent(req)) {
 
-            if (((filename != null) && (!filename.equals("")))
-                    && ((namespace != null) && (!namespace.equals("")))) {
+            String namespace = "";
+            String filename = "";
 
-                //push the file object and associated parameters to the filesystem (or other node)
-                FileSystemManager.getInstance().putFile(namespace, filename, aFileUpload);
-            } else {
-                System.err.println("problem with namespace or filename parameters");
+            DiskFileItemFactory aDiskFileItemFactory = new DiskFileItemFactory();
+            aDiskFileItemFactory.setSizeThreshold(1 * 1024 * 1024); //copy to disk if >1MB
+            aDiskFileItemFactory.setRepository(myTmpDir); //storing files above threshold
+            ServletFileUpload aServletFileUpload = new ServletFileUpload(aDiskFileItemFactory);
+
+            try {
+                List<FileItem> items = (List<FileItem>) aServletFileUpload.parseRequest(req);
+                for (FileItem item : items) {
+                    if (item.isFormField()) {
+                        if (item.getFieldName().equals("namespace")) {
+                            namespace = item.getString();
+                        }
+                        if (item.getFieldName().equals("filename")) {
+                            filename = item.getString();
+                        }
+                    } else {
+                        File aFile = new File(FileSystemManager.getInstance().getFormattedFilePathStr(
+                                FileSystemManager.getInstance().getStorageRootPath(),
+                                namespace, filename));
+                        item.write(aFile);
+                    }
+                }
+            } catch (FileUploadException ex) {
+                Logger.getLogger(FileManager.class.getName()).log(Level.SEVERE, "Error encountered while parsing the request", ex);
+            } catch (Exception ex) {
+                Logger.getLogger(FileManager.class.getName()).log(Level.SEVERE, "Error encountered while uploading file", ex);
             }
-        } else if (aFileUpload == null) {
-            System.err.println("aFileUpload is null");
-        } else {
-            System.err.println("problem with aFileUpload");
+
+            HttpCmdClient.getInstance().putFile(filename, namespace); //log to master server
         }
     }
 
     @Override
     protected void doGet(HttpServletRequest req, HttpServletResponse resp) {
-        String opt = req.getParameter("opt"); //what are we doing?
-        if ((opt != null) && (!opt.equals(""))) { //non-empty
-            if (opt.equals("get")) {
-                String filename = req.getParameter("filename");
-                String namespace = req.getParameter("namespace");
+        String namespace = req.getParameter("namespace");
+        String filename = req.getParameter("filename");
 
-                if (((filename != null) && (!filename.equals("")))
-                        && ((namespace != null) && (!namespace.equals("")))) {
+        if (((namespace != null) && (!namespace.equals("")))
+                && ((filename != null) && (!filename.equals("")))) {
 
-                    //get the file object requested
-                    File aFile = FileSystemManager.getInstance().getFile(namespace, filename);
+            //get the file object requested
+            File aFile = new File(FileSystemManager.getInstance().getFormattedFilePathStr(
+                    FileSystemManager.getInstance().getStorageRootPath(),
+                    namespace, filename));
 
-                    //send the file contents to the requester (if file exists)
-                    if (aFile != null) {
-                        try {
-                            doDownload(req, resp, aFile.getCanonicalPath(), aFile.getName());
-                        } catch (IOException ex) {
-                            Logger.getLogger(FileManager.class.getName()).log(Level.SEVERE, null, ex);
-                        }
-                    }
+            //send the file contents to the requester (if file exists)
+            if (aFile != null) {
+                try {
+                    doDownload(req, resp, aFile.getCanonicalPath(), aFile.getName());
+                } catch (IOException ex) {
+                    Logger.getLogger(FileManager.class.getName()).log(Level.SEVERE, null, ex);
                 }
             }
         }
@@ -111,6 +163,15 @@ public class FileManager extends HttpServlet implements ProgramConstants {
         } finally {
             if (aFileInputStream != null) {
                 aFileInputStream.close();
+            }
+        }
+    }
+
+    protected void createDirectory(String theDirPathStr) {
+        File aNewDirectory = new File(theDirPathStr);
+        if (!aNewDirectory.mkdir()) {
+            if (!aNewDirectory.mkdirs()) {
+                System.err.println("failed to create '" + theDirPathStr + "' directory");
             }
         }
     }

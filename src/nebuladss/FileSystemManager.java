@@ -4,15 +4,12 @@
 package nebuladss;
 
 import java.io.File;
-import java.io.IOException;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 import java.util.prefs.Preferences;
 
 /**
  * @author Jason Zerbe
  */
-public class FileSystemManager {
+public class FileSystemManager implements ProgramConstants {
 
     private static FileSystemManager fsm_singleInstance = null;
     private boolean fsm_DebugOn = false;
@@ -45,71 +42,30 @@ public class FileSystemManager {
     }
 
     /**
-     * store File or push it to another node if there is not enough space locally
-     * @param theNameSpace String
-     * @param theFileName String
-     * @param theFileToStore File
-     * @return boolean - was the file stored?
+     * deleting a directory in Java requires recursively deleting the contents
+     * before removing the root directory
+     * @param dir File
+     * @return boolean - did delete work?
      */
-    public boolean putFile(String theNameSpace, String theFileName, File theFileToStore) {
-        if (getCurrentAvailableMegaBytes() > getMegaBytes(theFileToStore.length())) {
-            String aFileOutputPathStr = getFormattedFilePathStr(fsm_StorageRootPathStr, theNameSpace, theFileName);
-            File aFileOutput = new File(aFileOutputPathStr);
-            boolean aFileStoreWorked = theFileToStore.renameTo(aFileOutput);
-            if (aFileStoreWorked) {
-                HttpCmdClient.getInstance().putFile(theNameSpace, theFileName); //log to master server
-                if (fsm_DebugOn) {
-                    System.out.println(this.getClass().getName() + " - putFile store - " + theNameSpace + ":" + theFileName);
+    protected boolean deleteDir(File dir) {
+        if (dir.isDirectory()) {
+            String[] children = dir.list();
+            for (int i = 0; i < children.length; i++) {
+                boolean success = deleteDir(new File(dir, children[i]));
+                if (!success) {
+                    return false;
                 }
             }
-            return aFileStoreWorked;
-        } else {
-            //TODO: push file to other "close" location
-            if (fsm_DebugOn) {
-                System.out.println(this.getClass().getName() + " - putFile push (not implemented) - " + theNameSpace + ":" + theFileName);
-            }
-            //TODO: get return of remote put, for now false
-            return false;
         }
+        return dir.delete();
     }
 
-    /**
-     * retrieves a file object from the local file-system store
-     * @param theNameSpace String
-     * @param theFileName String
-     * @return File
-     */
-    public File getFile(String theNameSpace, String theFileName) {
-        if ((fsm_StorageRootPathStr == null) || (theNameSpace == null) || (theFileName == null)) {
-            return null;
-        } else {
-            String aFilePathStr = getFormattedFilePathStr(fsm_StorageRootPathStr, theNameSpace, theFileName);
-            File aFile = new File(aFilePathStr);
-            if (aFile.isFile()) {
-                if (fsm_DebugOn) {
-                    try {
-                        System.out.println(this.getClass().getName() + " - File Canonical Path - " + aFile.getCanonicalPath());
-                    } catch (IOException ex) {
-                        Logger.getLogger(FileSystemManager.class.getName()).log(Level.WARNING, null, ex);
-                    }
-                }
-                return aFile;
-            } else {
-                return null;
-            }
-        }
+    public boolean deleteContentDir() {
+        return deleteDir(new File(getStorageRootPath()));
     }
 
-    /**
-     * helper function for properly formatting the file storage path
-     * @param theStorageRootPathStr String
-     * @param theNameSpace String
-     * @param theFileName String
-     * @return String
-     */
-    protected String getFormattedFilePathStr(String theStorageRootPathStr,
-            String theNameSpace, String theFileName) {
-        return (theStorageRootPathStr + "/" + theNameSpace + "/" + theFileName);
+    public boolean deleteTmpDir() {
+        return deleteDir(new File(getStorageTmpPath()));
     }
 
     /**
@@ -152,6 +108,24 @@ public class FileSystemManager {
     }
 
     /**
+     * helper function for properly formatting the file storage path
+     * @param theStorageRootPathStr String
+     * @param theNameSpace String
+     * @param theFileName String
+     * @return String
+     */
+    public String getFormattedFilePathStr(String theStorageRootPathStr,
+            String theNameSpace, String theFileName) {
+        String aReturnPathStr = theStorageRootPathStr + "/" + theNameSpace + "_-NS-_" + theFileName;
+
+        if (fsm_DebugOn) {
+            System.out.println("aReturnPathStr = '" + aReturnPathStr + "'");
+        }
+
+        return aReturnPathStr;
+    }
+
+    /**
      * convert bytes to megabytes
      * @param theByteCount long
      * @return long
@@ -178,16 +152,30 @@ public class FileSystemManager {
      * @param theStorageRootPathStr String
      */
     public void setStorageRootPath(String theStorageRootPathStr) {
-        if (theStorageRootPathStr.endsWith("/")) { //unix
-            theStorageRootPathStr = theStorageRootPathStr.substring(0, theStorageRootPathStr.lastIndexOf("/"));
+        if (theStorageRootPathStr != null) {
+            if (theStorageRootPathStr.endsWith("/")) { //unix
+                theStorageRootPathStr = theStorageRootPathStr.substring(0, theStorageRootPathStr.lastIndexOf("/"));
+            }
+            if (theStorageRootPathStr.endsWith("\\")) { //windows
+                theStorageRootPathStr = theStorageRootPathStr.substring(0, theStorageRootPathStr.lastIndexOf("\\"));
+            }
+            if (theStorageRootPathStr.equals("")) {
+                theStorageRootPathStr = "nebula_dss";
+            }
+            fsm_StorageRootPathStr = theStorageRootPathStr;
+            fsm_Preferences.put(fsm_kStorageRootPathStrKey, theStorageRootPathStr);
+
+            if (fsm_DebugOn) {
+                System.out.println("set fsm_StorageRootPathStr = '" + fsm_StorageRootPathStr + "'");
+            }
         }
-        if (theStorageRootPathStr.endsWith("\\")) { //windows
-            theStorageRootPathStr = theStorageRootPathStr.substring(0, theStorageRootPathStr.lastIndexOf("\\"));
-        }
-        if (theStorageRootPathStr.equals("")) {
-            theStorageRootPathStr = "nebula_dss";
-        }
-        fsm_StorageRootPathStr = theStorageRootPathStr;
-        fsm_Preferences.put(fsm_kStorageRootPathStrKey, theStorageRootPathStr);
+    }
+
+    public String getStorageRootPath() {
+        return fsm_StorageRootPathStr;
+    }
+
+    public String getStorageTmpPath() {
+        return kNodeTmpStoragePathStr;
     }
 }

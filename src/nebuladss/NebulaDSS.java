@@ -20,7 +20,7 @@ public class NebulaDSS implements ProgramConstants {
     private static int nd_HttpPortInt = kWebAppDefaultPortInt;
     private static String nd_MasterServerUrlStr = kMasterServerBaseUrlStr;
     private static int nd_MaxSizeMegaBytes = kStorageDefaultMaxSizeMegaBytes;
-    private static String nd_RootPathStr = "default-fs-store";
+    private static String nd_RootPathStr = kNodeDefaultStoragePathStr;
     private static boolean nd_DebugOn = true;
 
     /**
@@ -64,14 +64,6 @@ public class NebulaDSS implements ProgramConstants {
         FileSystemManager.getInstance(nd_DebugOn).setMaxAvailableMegaBytes(nd_MaxSizeMegaBytes);
         FileSystemManager.getInstance().setStorageRootPath(nd_RootPathStr);
 
-        //start jetty with servlets that accept GET/POST for file management
-        try {
-            JettyWebServer.getInstance(nd_HttpPortInt).startServer();
-        } catch (Exception ex) {
-            Logger.getLogger(NebulaDSS.class.getName()).log(Level.SEVERE, null, ex);
-            System.exit(1);
-        }
-
         //set master server URL
         HttpCmdClient.getInstance(nd_DebugOn).setMasterSeverUrlStr(nd_MasterServerUrlStr);
 
@@ -86,6 +78,14 @@ public class NebulaDSS implements ProgramConstants {
                 Logger.getLogger(NebulaDSS.class.getName()).log(Level.SEVERE, null, ex);
                 System.exit(1);
             }
+        }
+
+        //start jetty with servlets that accept GET/POST for file management
+        try {
+            JettyWebServer.getInstance(nd_HttpPortInt).startServer();
+        } catch (Exception ex) {
+            Logger.getLogger(NebulaDSS.class.getName()).log(Level.SEVERE, null, ex);
+            System.exit(1);
         }
 
         //tell master server about HTTP server once ready (Jetty needs to be running before)
@@ -125,6 +125,14 @@ public class NebulaDSS implements ProgramConstants {
                 JettyWebServer.getInstance().stopServer();
             } catch (Exception ex) {
                 Logger.getLogger(NebulaDSS.class.getName()).log(Level.WARNING, null, ex);
+            }
+
+            //4. delete temporary upload directory
+            FileSystemManager.getInstance().deleteTmpDir();
+
+            //5. delete content dir if in debug mode
+            if (nd_DebugOn) {
+                FileSystemManager.getInstance().deleteContentDir();
             }
         }
     }

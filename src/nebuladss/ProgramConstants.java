@@ -22,6 +22,8 @@ public interface ProgramConstants {
     //storage constants
     public static final String kNodeUUIDKeyStr = "NodeUUID";
     public static final int kStorageDefaultMaxSizeMegaBytes = 512; //default to half-gig available
+    public static final String kNodeDefaultStoragePathStr = "default-fs-store";
+    public static final String kNodeTmpStoragePathStr = "tmp";
     //date and time format strings --> http://download.oracle.com/javase/1,5.0/docs/api/java/text/SimpleDateFormat.html
     public static final String kDateFormat_USA_Standard = "yyyy-MM-dd HH:mm:ss";
     public static final String kDateFormat_24_hr_precise = "HH:mm:ss:SSS";
