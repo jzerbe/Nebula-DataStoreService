@@ -22,8 +22,7 @@ if (isset($_GET['opt']) && ($_GET['opt'] != '')) {
         echo 'address=' . $_SERVER["REMOTE_ADDR"] . "\n";
     } elseif ($opt == 'get') {
         $aReturnArray = getFileHostRecords($SQLite3_conn, $_GET['namespace'], $_GET['filename']);
-        $aReturnArraySize = $aReturnArray['size'];
-        for ($i = 0; $i < $aReturnArraySize; $i++) {
+        for ($i = 0; $i < sizeof($aReturnArray); $i++) {
             echo 'http://' . $aReturnArray[$i]['address'] . ':' . $aReturnArray[$i]['http']
             . '/files?namespace=' . $aReturnArray[$i]['namespace'] . '&filename='
             . $aReturnArray[$i]['filename'] . "\n";
@@ -99,10 +98,6 @@ function getFileHostRecords($SQLite3_conn, $theNameSpace, $theFileName) {
         $aReturnArray[$i]['filename'] = $row['filename'];
         $i++;
     }
-    if ($i == 0) {
-        $i = -1;
-    }
-    $aReturnArray['size'] = $i;
 
     return $aReturnArray;
 }

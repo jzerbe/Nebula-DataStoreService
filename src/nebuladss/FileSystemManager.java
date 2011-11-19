@@ -139,6 +139,14 @@ public class FileSystemManager implements ProgramConstants {
     }
 
     /**
+     * how many MB are we allowed?
+     * @return long
+     */
+    public long getMaxAvailableMegaBytes() {
+        return fsm_MaxAvailableMegaBytes;
+    }
+
+    /**
      * set the max available MB that the application is allowed to use for storage
      * @param theMaxAvailableMegaBytes long
      */

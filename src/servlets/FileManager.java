@@ -100,7 +100,14 @@ public class FileManager extends HttpServlet implements ProgramConstants {
                 Logger.getLogger(FileManager.class.getName()).log(Level.SEVERE, "Error encountered while uploading file", ex);
             }
 
-            HttpCmdClient.getInstance().putFile(filename, namespace); //log to master server
+            HttpCmdClient.getInstance().putFile(namespace, filename); //log to master server
+
+            //output success response
+            try {
+                resp.getWriter().println("Saved: " + namespace + "-" + filename);
+            } catch (IOException ex) {
+                Logger.getLogger(FileManager.class.getName()).log(Level.WARNING, null, ex);
+            }
         }
     }
 
@@ -120,10 +127,21 @@ public class FileManager extends HttpServlet implements ProgramConstants {
             //send the file contents to the requester (if file exists)
             if (aFile != null) {
                 try {
-                    doDownload(req, resp, aFile.getCanonicalPath(), aFile.getName());
+                    doDownload(req, resp, aFile.getCanonicalPath(), filename);
                 } catch (IOException ex) {
                     Logger.getLogger(FileManager.class.getName()).log(Level.SEVERE, null, ex);
                 }
+            }
+        } else {
+            try {
+                resp.getWriter().println(
+                        "Local FS Available: "
+                        + String.valueOf(FileSystemManager.getInstance().getCurrentAvailableMegaBytes())
+                        + "MB / "
+                        + String.valueOf(FileSystemManager.getInstance().getMaxAvailableMegaBytes())
+                        + "MB");
+            } catch (IOException ex) {
+                Logger.getLogger(FileManager.class.getName()).log(Level.WARNING, null, ex);
             }
         }
     }
