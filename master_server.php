@@ -22,10 +22,20 @@ if (isset($_GET['opt']) && ($_GET['opt'] != '')) {
         echo 'address=' . $_SERVER["REMOTE_ADDR"] . "\n";
     } elseif ($opt == 'get') {
         $aReturnArray = getFileHostRecords($SQLite3_conn, $_GET['namespace'], $_GET['filename']);
-        for ($i = 0; $i < sizeof($aReturnArray); $i++) {
-            echo 'http://' . $aReturnArray[$i]['address'] . ':' . $aReturnArray[$i]['http']
-            . '/files?namespace=' . $aReturnArray[$i]['namespace'] . '&filename='
-            . $aReturnArray[$i]['filename'] . "\n";
+        if (sizeof($aReturnArray) > 0) {
+            if (isset($_GET['redir']) && ($_GET['redir'] != '')) {
+                $i = 0;
+                $aRedirUrl = 'http://' . $aReturnArray[$i]['address'] . ':' . $aReturnArray[$i]['http']
+                . '/files?namespace=' . $aReturnArray[$i]['namespace'] . '&filename='
+                . $aReturnArray[$i]['filename'];
+                header("Location: $aRedirUrl");
+            } else {
+                for ($i = 0; $i < sizeof($aReturnArray); $i++) {
+                    echo 'http://' . $aReturnArray[$i]['address'] . ':' . $aReturnArray[$i]['http']
+                    . '/files?namespace=' . $aReturnArray[$i]['namespace'] . '&filename='
+                    . $aReturnArray[$i]['filename'] . "\n";
+                }
+            }
         }
     } elseif ($opt == 'latency') {
         echo "latency=true\n";
