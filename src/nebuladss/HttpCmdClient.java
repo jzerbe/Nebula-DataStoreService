@@ -82,9 +82,10 @@ public class HttpCmdClient implements ProgramConstants {
      * @return boolean - did contacting the master server work?
      */
     public boolean putFile(String theNameSpace, String theFileName) {
-        String aURLConnectionParamStr = "opt=put" + "&uuid=" + getUUID()
+        String aURLConnectionParamStr = "opt=set&uuid=" + getUUID()
                 + "&namespace=" + theNameSpace + "&filename=" + theFileName;
-        return voidServerMethod(hcc_theMasterServerUrlStr, aURLConnectionParamStr);
+        return voidServerMethod(
+                hcc_theMasterServerUrlStr, aURLConnectionParamStr);
     }
 
     /**
@@ -94,9 +95,9 @@ public class HttpCmdClient implements ProgramConstants {
      * @return ArrayList<String>
      */
     public ArrayList<String> getFile(String theNameSpace, String theFileName) {
-        String aURLConnectionParamStr = "opt=get" + "&namespace=" + theNameSpace
-                + "&filename=" + theFileName;
-        ArrayList<String> returnArrayList = returnServerMethod(hcc_theMasterServerUrlStr, aURLConnectionParamStr);
+        String aURLConnectionParamStr = "opt=get&namespace=" + theNameSpace + "&filename=" + theFileName;
+        ArrayList<String> returnArrayList = returnServerMethod(
+                hcc_theMasterServerUrlStr, aURLConnectionParamStr);
 
         //output debug
         if (hcc_DebugOn) {
@@ -129,8 +130,8 @@ public class HttpCmdClient implements ProgramConstants {
      * @return boolean - did server respond with empty page?
      */
     public boolean notifyUp() {
-        String aURLConnectionParamStr = "opt=ping" + "&uuid=" + getUUID()
-                + "&http=" + String.valueOf(JettyWebServer.getInstance().getServerPortInt());
+        String aURLConnectionParamStr = "opt=ping&uuid=" + getUUID() + "&http="
+                + String.valueOf(JettyWebServer.getInstance().getServerPortInt());
         return voidServerMethod(hcc_theMasterServerUrlStr, aURLConnectionParamStr);
     }
 
@@ -139,10 +140,9 @@ public class HttpCmdClient implements ProgramConstants {
      * @return boolean - does master server think UUID online?
      */
     public boolean isUUIDUp() {
-        String aOperationCheckOnlineUUID = "online-uuid";
-        String aURLConnectionParamStr = "opt=" + aOperationCheckOnlineUUID
-                + "&uuid=" + getUUID();
-        ArrayList<String> returnArrayList = returnServerMethod(hcc_theMasterServerUrlStr, aURLConnectionParamStr);
+        String aURLConnectionParamStr = "opt=online-uuid&uuid=" + getUUID();
+        ArrayList<String> returnArrayList = returnServerMethod(
+                hcc_theMasterServerUrlStr, aURLConnectionParamStr);
         if (returnArrayList == null) {
             return false;
         }
@@ -154,9 +154,10 @@ public class HttpCmdClient implements ProgramConstants {
             }
         }
 
-        //does the master server think the UUID is up?
+        //does the master server think this UUID is up?
+        String theOnlineResponseStr = "online-uuid=" + getUUID();
         for (int i = 0; i < returnArrayList.size(); i++) {
-            if (returnArrayList.get(i).contains("online=true")) {
+            if (returnArrayList.get(i).contains(theOnlineResponseStr)) {
                 return true;
             }
         }
@@ -168,9 +169,9 @@ public class HttpCmdClient implements ProgramConstants {
      * @return boolean - did server respond with empty page?
      */
     public boolean notifyDown() {
-        String aURLConnectionParamStr = "opt=ping" + "&uuid=" + getUUID()
-                + "&http=" + String.valueOf(JettyWebServer.getInstance().getServerPortInt())
-                + "&down=true";
+        String aURLConnectionParamStr = "opt=ping&uuid=" + getUUID() + "&http="
+                + String.valueOf(JettyWebServer.getInstance().getServerPortInt())
+                + "&remove=true";
         return voidServerMethod(hcc_theMasterServerUrlStr, aURLConnectionParamStr);
     }
 
@@ -190,7 +191,8 @@ public class HttpCmdClient implements ProgramConstants {
     }
 
     /**
-     * internal method for doing a GET with response retrieval
+     * internal method for doing a GET with response retrieval. if theUrlArgs
+     * is null, then just use theUrlBase without trailing "?"
      * @param theUrlBase String - part before "?"
      * @param theUrlArgs String - part after "?"
      * @return ArrayList<String>
@@ -235,7 +237,8 @@ public class HttpCmdClient implements ProgramConstants {
     }
 
     /**
-     * helper method for constructing a URLConnection
+     * helper method for constructing a URLConnection. if theUrlArgs is null
+     * then just use theUrlBase with no trailing "?"
      * @param theUrlBase String - part before "?"
      * @param theUrlArgs String - part after "?"
      * @return URLConnection
@@ -244,7 +247,11 @@ public class HttpCmdClient implements ProgramConstants {
         //create the resolvable url
         URL aUrl = null;
         try {
-            aUrl = new URL(theUrlBase + "?" + theUrlArgs);
+            if (theUrlArgs == null) {
+                aUrl = new URL(theUrlBase);
+            } else {
+                aUrl = new URL(theUrlBase + "?" + theUrlArgs);
+            }
         } catch (MalformedURLException ex) {
             Logger.getLogger(HttpCmdClient.class.getName()).log(Level.SEVERE, null, ex);
             return null;

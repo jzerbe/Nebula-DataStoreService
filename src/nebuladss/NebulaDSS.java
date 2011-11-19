@@ -21,7 +21,7 @@ public class NebulaDSS implements ProgramConstants {
     private static String nd_MasterServerUrlStr = kMasterServerBaseUrlStr;
     private static int nd_MaxSizeMegaBytes = kStorageDefaultMaxSizeMegaBytes;
     private static String nd_RootPathStr = kNodeDefaultStoragePathStr;
-    private static boolean nd_DebugOn = true;
+    private static boolean nd_LocalTestOn = false;
 
     /**
      * help method for setting the global start values from the command line parameters
@@ -39,6 +39,9 @@ public class NebulaDSS implements ProgramConstants {
                 nd_MaxSizeMegaBytes = Integer.valueOf(currentArgStr);
             } else if (theCurrentArg.contains(kRootStorageArgStr)) {
                 nd_RootPathStr = currentArgStr;
+            } else if (theCurrentArg.contains(kTestArgStr)) {
+                nd_LocalTestOn = true;
+                nd_MasterServerUrlStr = kMasterServerNoUrlStr;
             }
         }
     }
@@ -61,14 +64,14 @@ public class NebulaDSS implements ProgramConstants {
         Runtime.getRuntime().addShutdownHook(new RunWhenShuttingDown());
 
         //start local filesystem management
-        FileSystemManager.getInstance(nd_DebugOn).setMaxAvailableMegaBytes(nd_MaxSizeMegaBytes);
+        FileSystemManager.getInstance(nd_LocalTestOn).setMaxAvailableMegaBytes(nd_MaxSizeMegaBytes);
         FileSystemManager.getInstance().setStorageRootPath(nd_RootPathStr);
 
         //set master server URL
-        HttpCmdClient.getInstance(nd_DebugOn).setMasterSeverUrlStr(nd_MasterServerUrlStr);
+        HttpCmdClient.getInstance(nd_LocalTestOn).setMasterSeverUrlStr(nd_MasterServerUrlStr);
 
         //set up portmapping (if needed)
-        if (Layer3Info.getInstance(nd_DebugOn).isHostBehindNAT()) {
+        if (Layer3Info.getInstance(nd_LocalTestOn).isHostBehindNAT()) {
             try {
                 nd_HttpPortInt = weupnp.getInstance().addPortMapping("TCP", nd_HttpPortInt, kPortMappingDescStr);
             } catch (IOException ex) {
@@ -130,8 +133,8 @@ public class NebulaDSS implements ProgramConstants {
             //4. delete temporary upload directory
             FileSystemManager.getInstance().deleteTmpDir();
 
-            //5. delete content dir if in debug mode
-            if (nd_DebugOn) {
+            //5. delete content dir if in local test mode
+            if (nd_LocalTestOn) {
                 FileSystemManager.getInstance().deleteContentDir();
             }
         }

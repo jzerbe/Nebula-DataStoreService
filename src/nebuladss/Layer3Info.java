@@ -59,8 +59,8 @@ public class Layer3Info implements ProgramConstants {
             System.out.println("LocalIPv4 Address = " + aIPv4AddrStr);
         }
 
-        String isValidExternalAddressStr = "ipv4=" + aIPv4AddrStr;
-        String aURLConnectionParamStr = "opt=nat" + "&" + isValidExternalAddressStr;
+        String isValidExternalAddressStr = "address=" + aIPv4AddrStr;
+        String aURLConnectionParamStr = "opt=address";
         ArrayList<String> returnArrayList = HttpCmdClient.getInstance().returnServerMethod(
                 HttpCmdClient.getInstance().getMasterSeverUrlStr(), aURLConnectionParamStr);
         if (returnArrayList == null) {
