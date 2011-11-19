@@ -30,11 +30,17 @@ if (isset($_GET['opt']) && ($_GET['opt'] != '')) {
         }
     } elseif ($opt == 'latency') {
         echo "latency=true\n";
-    } elseif ($opt == 'online') {
+    } elseif ($opt == 'online-uuid') {
         if (getNodeIsOnline($SQLite3_conn, $_GET['uuid'])) {
             echo "online-uuid=" . $_GET['uuid'] . "\n";
         } else {
             echo "offline-uuid=" . $_GET['uuid'] . "\n";
+        }
+    } elseif ($opt == 'online') {
+        $aReturnArray = getNodesOnline($SQLite3_conn);
+        for ($i = 0; $i < sizeof($aReturnArray); $i++) {
+            echo 'http://' . $aReturnArray[$i]['address'] . ':' . $aReturnArray[$i]['http']
+            . "/files\n";
         }
     } elseif ($opt == 'ping') {
         if (isset($_GET['remove']) && ($_GET['remove'] != '')) {

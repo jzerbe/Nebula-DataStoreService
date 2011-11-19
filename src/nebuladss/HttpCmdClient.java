@@ -140,7 +140,7 @@ public class HttpCmdClient implements ProgramConstants {
      * @return boolean - does master server think UUID online?
      */
     public boolean isUUIDUp() {
-        String aURLConnectionParamStr = "opt=online&uuid=" + getUUID();
+        String aURLConnectionParamStr = "opt=online-uuid&uuid=" + getUUID();
         ArrayList<String> returnArrayList = returnServerMethod(
                 hcc_theMasterServerUrlStr, aURLConnectionParamStr);
         if (returnArrayList == null) {
