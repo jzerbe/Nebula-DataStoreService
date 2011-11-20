@@ -16,7 +16,7 @@ public interface ProgramConstants {
     public static final String kWebAppContextPathStr = "/";
     public static final String kWebAppDirStr = "../webapp"; //root is the directory or the Jetty calling class
     //master server stuffs
-    public static final String kMasterServerBaseUrlStr = "http://www-users.cs.umn.edu/~zerbe/master_server.php";
+    public static final String kMasterServerBaseUrlStr = "http://www-users.cs.umn.edu/~zerbe/nebula_dss/master_server.php";
     public static final String kMasterServerNoUrlStr = "NONE";
     public static final String kMasterServerReturnStringSplitStr = "=";
     //storage constants
