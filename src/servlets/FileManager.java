@@ -27,7 +27,7 @@ import org.apache.commons.fileupload.servlet.ServletFileUpload;
 /**
  * handles POST requests for PUT file operation
  * handles GET requests for GET file operation
- * 
+ *
  * @author Jason Zerbe
  */
 public class FileManager extends HttpServlet implements ProgramConstants {
@@ -91,13 +91,21 @@ public class FileManager extends HttpServlet implements ProgramConstants {
                         File aFile = new File(FileSystemManager.getInstance().getFormattedFilePathStr(
                                 FileSystemManager.getInstance().getStorageRootPath(),
                                 namespace, filename));
+                        if (aFile.exists()) {
+                            return; //file already in system - do nothing
+                        }
+
                         item.write(aFile);
                     }
                 }
             } catch (FileUploadException ex) {
-                Logger.getLogger(FileManager.class.getName()).log(Level.SEVERE, "Error encountered while parsing the request", ex);
+                Logger.getLogger(FileManager.class.getName()).log(
+                        Level.SEVERE, "Error encountered while parsing the request", ex);
+                return;
             } catch (Exception ex) {
-                Logger.getLogger(FileManager.class.getName()).log(Level.SEVERE, "Error encountered while uploading file", ex);
+                Logger.getLogger(FileManager.class.getName()).log(
+                        Level.SEVERE, "Error encountered while uploading file", ex);
+                return;
             }
 
             HttpCmdClient.getInstance().putFile(namespace, filename); //log to master server
@@ -108,6 +116,10 @@ public class FileManager extends HttpServlet implements ProgramConstants {
             } catch (IOException ex) {
                 Logger.getLogger(FileManager.class.getName()).log(Level.WARNING, null, ex);
             }
+        } else {
+            System.err.println("Not valid multipart POST "
+                    + req.getParameter("namespace") + "-"
+                    + req.getParameter("filename"));
         }
     }
 
@@ -151,12 +163,12 @@ public class FileManager extends HttpServlet implements ProgramConstants {
      * [http://stackoverflow.com/questions/685271/using-servletoutputstream-to-write-very-large-files-in-a-java-servlet-without-mem]
      * and [http://snippets.dzone.com/posts/show/4629] that allows for the
      * pass-through downloading of data over HTTP 1.1 from the datastore node
-     * 
+     *
      * @param req HttpServletRequest
      * @param resp HttpServletResponse
      * @param theOriginalFileName String
      * @param theOutputFileName String
-     * @throws IOException 
+     * @throws IOException
      */
     protected void doDownload(HttpServletRequest req, HttpServletResponse resp,
             String theOriginalFileName, String theOutputFileName) throws IOException {
