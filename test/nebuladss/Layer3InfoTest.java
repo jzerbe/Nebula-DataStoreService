@@ -23,16 +23,4 @@ public class Layer3InfoTest {
         String result = instance.getValidIPAddress(theIpAddressType);
         assertEquals(true, (result != null));
     }
-
-    /**
-     * just make sure function gets to point to return something valid
-     */
-    @Test
-    public void testIsHostBehindNAT() {
-        System.out.println("isHostBehindNAT");
-        Layer3Info instance = Layer3Info.getInstance(true);
-        boolean result = instance.isHostBehindNAT();
-        assertEquals((true || false), result);
-        System.out.println(result);
-    }
 }

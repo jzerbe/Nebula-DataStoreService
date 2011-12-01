@@ -4,13 +4,10 @@
 package nebuladss;
 
 import contrib.JettyWebServer;
-import contrib.weupnp;
-import java.io.IOException;
 import java.text.SimpleDateFormat;
 import java.util.GregorianCalendar;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import org.xml.sax.SAXException;
 
 /**
  * @author Jason Zerbe
@@ -70,19 +67,6 @@ public class NebulaDSS implements ProgramConstants {
         //set master server URL
         HttpCmdClient.getInstance(nd_LocalTestOn).setMasterSeverUrlStr(nd_MasterServerUrlStr);
 
-        //set up portmapping (if needed)
-        if (Layer3Info.getInstance(nd_LocalTestOn).isHostBehindNAT()) {
-            try {
-                nd_HttpPortInt = weupnp.getInstance().addPortMapping("TCP", nd_HttpPortInt, kPortMappingDescStr);
-            } catch (IOException ex) {
-                Logger.getLogger(NebulaDSS.class.getName()).log(Level.SEVERE, null, ex);
-                System.exit(1);
-            } catch (SAXException ex) {
-                Logger.getLogger(NebulaDSS.class.getName()).log(Level.SEVERE, null, ex);
-                System.exit(1);
-            }
-        }
-
         //start jetty with servlets that accept GET/POST for file management
         try {
             JettyWebServer.getInstance(nd_HttpPortInt).startServer();
@@ -112,28 +96,17 @@ public class NebulaDSS implements ProgramConstants {
             //1. remove node from master server - do not confuse other peers
             HttpCmdClient.getInstance().notifyDown();
 
-            //2. remove portmapping (if needed) - make sure UPnP IGD does not overload
-            if (Layer3Info.getInstance().isHostBehindNAT()) {
-                try {
-                    weupnp.getInstance().removePortMapping("TCP", nd_HttpPortInt);
-                } catch (IOException ex) {
-                    Logger.getLogger(NebulaDSS.class.getName()).log(Level.WARNING, null, ex);
-                } catch (SAXException ex) {
-                    Logger.getLogger(NebulaDSS.class.getName()).log(Level.WARNING, null, ex);
-                }
-            }
-
-            //3. shutdown jetty -  does not really matter if aborted abruptly
+            //2. shutdown jetty -  does not really matter if aborted abruptly
             try {
                 JettyWebServer.getInstance().stopServer();
             } catch (Exception ex) {
                 Logger.getLogger(NebulaDSS.class.getName()).log(Level.WARNING, null, ex);
             }
 
-            //4. delete temporary upload directory
+            //3. delete temporary upload directory
             FileSystemManager.getInstance().deleteTmpDir();
 
-            //5. delete content dir if in local test mode
+            //4. delete content dir if in local test mode
             if (nd_LocalTestOn) {
                 FileSystemManager.getInstance().deleteContentDir();
             }

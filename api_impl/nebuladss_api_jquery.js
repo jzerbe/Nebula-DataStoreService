@@ -1,6 +1,9 @@
 /*
  * this jQuery library abstracts away the basic HTTP operations to give
  * the developer an easier set of functions to work with
+ *
+ * nebulaDSS_setFile requires http://malsup.github.com/jquery.form.js
+ *
  * @author Jason Zerbe
  * @link https://github.com/jzerbe/Nebula-DataStoreService
  * @see http://api.jquery.com/trigger/
@@ -57,11 +60,7 @@ function nebulaDSS_getFile(theTriggerElement, theTriggerType, theNameSpaceStr, t
 }
 
 /**
- * THIS FUNCTION DOES NOT WORK, SEE NOTE
- *
  * create a file on the NebulaDSS
- * NOTE: this function will remain non-functional until proper disk file access
- * method found. perhaps: http://stackoverflow.com/a/371902
  *
  * @param theTriggerElement - a valid jQuery dom element: document, "#foo", body
  * @param theTriggerType - a string representation of the trigger handler that has been bound
@@ -70,6 +69,7 @@ function nebulaDSS_getFile(theTriggerElement, theTriggerType, theNameSpaceStr, t
  * @param theLatencyMax - an integer value for the maximum latency in milliseconds accepted
  * @param theBandwidthMin - float value of least bandwidth for hosts used
  * @param theGroupKey - all files with same UUID string should go on same host - SHA1(namespace + filename + time) ?
+ * @param theFileObjPath - the local file path/handle for the multipart upload
  *
  * for SHA1 output equivalent to php/python --> http://phpjs.org/functions/sha1:512
  *
@@ -83,9 +83,8 @@ function nebulaDSS_getFile(theTriggerElement, theTriggerType, theNameSpaceStr, t
  * });
  * nebulaDSS_setFile('#foo', 'nebulaDSS_setFile', 'test-namespace', 'test-file.txt', 500, 0.25, 'myUUIDkey');
  */
-function nebulaDSS_setFile(theTriggerElement, theTriggerType,
-    theNameSpaceStr, theFileNameStr,
-    theLatencyMax, theBandwidthMin, theGroupKey) {
+function nebulaDSS_setFile(theTriggerElement, theTriggerType, theNameSpaceStr,
+    theFileNameStr, theLatencyMax, theBandwidthMin, theGroupKey, theFileObjPath) {
     var aOnlineNodeRequestStr = myControlServerBaseStr + "?opt=online"
     + "&latency_max=" + theLatencyMax + "&bandwidth_min=" + theBandwidthMin;
     $.get(aOnlineNodeRequestStr, function(theReturnedData) {
@@ -94,22 +93,26 @@ function nebulaDSS_setFile(theTriggerElement, theTriggerType,
         if (aSingleHostExists) {
             var aHostUrlStrArray = aDataStr.split(/\r\n|\r|\n/);
             if (aHostUrlStrArray.length > 0) {
-                $.ajax({ 
-                    type: "POST",
-                    url: aHostUrlStrArray[0],
-                    enctype: "multipart/form-data",
-                    data: {
-                        "namespace": theNameSpaceStr,
-                        "filename": theFileNameStr,
-                        "group-key": theGroupKey,
-                        "file": theFileObj //TODO: need to get file object
-                    },
-                    success: function(thePostReturn){
-                        var aPostReturnStr = new String(thePostReturn);
-                        var aPostWorkedBool = (aPostReturnStr.indexOf("Saved") > -1);
-                        $(theTriggerElement).trigger(theTriggerType, [aPostWorkedBool, 'file stored in NebulaDSS']);
-                    }
-                });
+                var aFileSubmitForm = $(document.createElement('form')).hide();
+                var aFileSubmitFormId = theNameSpaceStr + '-' + theFileNameStr;
+                aFileSubmitForm.attr('id', aFileSubmitFormId);
+                aFileSubmitForm.append("<input type='text' name='namespace' value='"+theNameSpaceStr+"' />");
+                aFileSubmitForm.append("<input type='text' name='filename' value='"+theFileNameStr+"' />");
+                aFileSubmitForm.append("<input type='text' name='group-key' value='"+theGroupKey+"' />");
+                aFileSubmitForm.append("<input type='file' name='file' value='"+theFileObjPath+"' />");
+
+                var aSubmitFormOptions = { //form should be all set before options
+                    iframe: true,
+                    type: 'post',
+                    url: aHostUrlStrArray[0]
+                };
+                aFileSubmitForm.ajaxForm(aSubmitFormOptions);
+
+                aFileSubmitForm.ajaxSubmit();
+
+                $(theTriggerElement).trigger(theTriggerType, [true, 'data submitted']);
+            } else {
+                $(theTriggerElement).trigger(theTriggerType, [false, 'malformed host information']);
             }
         } else {
             $(theTriggerElement).trigger(theTriggerType, [false, 'no matching hosts']);
