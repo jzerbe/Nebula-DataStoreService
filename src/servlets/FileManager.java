@@ -68,6 +68,8 @@ public class FileManager extends HttpServlet implements ProgramConstants {
      */
     @Override
     protected void doPost(HttpServletRequest req, HttpServletResponse resp) {
+        resp.addHeader("Access-Control-Allow-Origin", "*"); //http://enable-cors.org/#how-cgi
+
         if (ServletFileUpload.isMultipartContent(req)) {
 
             String namespace = "";
@@ -126,6 +128,8 @@ public class FileManager extends HttpServlet implements ProgramConstants {
 
     @Override
     protected void doGet(HttpServletRequest req, HttpServletResponse resp) {
+        resp.addHeader("Access-Control-Allow-Origin", "*"); //http://enable-cors.org/#how-cgi
+
         String namespace = req.getParameter("namespace");
         String filename = req.getParameter("filename");
 
