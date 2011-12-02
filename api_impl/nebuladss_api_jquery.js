@@ -65,7 +65,6 @@ function nebulaDSS_private_ServerExists(theData) {
 /**
  * get the contens of a file stored on the NebulaDSS
  * NOT cross domain capable
- * TODO: request cross domain privledges?
  *
  * @param theTriggerElement - a valid jQuery dom element: document, "#foo", body
  * @param theTriggerType - a string representation of the trigger handler that has been bound
@@ -90,7 +89,7 @@ function nebulaDSS_getFile(theTriggerElement, theTriggerType, theNameSpaceStr, t
 
 /**
  * create a file on the NebulaDSS
- * TODO: CROSS DOMAIN ENABLED ---
+ * CROSS DOMAIN ENABLED
  *
  * @param theTriggerElement - a valid jQuery dom element: document, "#foo", body
  * @param theTriggerType - a string representation of the trigger handler that has been bound
@@ -121,34 +120,25 @@ function nebulaDSS_setFile(theTriggerElement, theTriggerType, theNameSpaceStr,
             latency_max: theLatencyMax,
             bandwidth_min: theBandwidthMin
         }, function(data) {
-            var aSingleHostExists = nebulaDSS_private_ServerExists(data.responseText);
-            alert(data.responseText); //TODO - pull out server strings from data
+            if (nebulaDSS_private_ServerExists(data.responseText)) {
+                var theHostUrlStr = $("p:first").text(data.responseText);
+                nebulaDSS_private_SubmitData(theTriggerElement, theTriggerType,
+                    theHostUrlStr, theNameSpaceStr, theFileNameStr,
+                    theGroupKey, theFileObjPath);
+            } else {
+                $(theTriggerElement).trigger(theTriggerType, [false, 'no matching hosts']);
+            }
         });
     } else {
         var aOnlineNodeRequestStr = myControlServerBaseStr + "?opt=online"
         + "&latency_max=" + theLatencyMax + "&bandwidth_min=" + theBandwidthMin;
         $.get(aOnlineNodeRequestStr, function(data) {
             if (nebulaDSS_private_ServerExists(data)) {
-                var aHostUrlStrArray = aDataStr.split(/\r\n|\r|\n/);
+                var aHostUrlStrArray = data.split(/\r\n|\r|\n/);
                 if (aHostUrlStrArray.length > 0) {
-                    var aFileSubmitForm = $(document.createElement('form')).hide();
-                    var aFileSubmitFormId = theNameSpaceStr + '-' + theFileNameStr;
-                    aFileSubmitForm.attr('id', aFileSubmitFormId);
-                    aFileSubmitForm.append("<input type='text' name='namespace' value='"+theNameSpaceStr+"' />");
-                    aFileSubmitForm.append("<input type='text' name='filename' value='"+theFileNameStr+"' />");
-                    aFileSubmitForm.append("<input type='text' name='group-key' value='"+theGroupKey+"' />");
-                    aFileSubmitForm.append("<input type='file' name='file' value='"+theFileObjPath+"' />");
-
-                    var aSubmitFormOptions = { //form should be all set before options
-                        iframe: true,
-                        type: 'post',
-                        url: aHostUrlStrArray[0]
-                    };
-                    aFileSubmitForm.ajaxForm(aSubmitFormOptions);
-
-                    aFileSubmitForm.ajaxSubmit();
-
-                    $(theTriggerElement).trigger(theTriggerType, [true, 'data submitted']);
+                    nebulaDSS_private_SubmitData(theTriggerElement, theTriggerType,
+                        aHostUrlStrArray[0], theNameSpaceStr, theFileNameStr,
+                        theGroupKey, theFileObjPath);
                 } else {
                     $(theTriggerElement).trigger(theTriggerType, [false, 'malformed host information']);
                 }
@@ -157,4 +147,30 @@ function nebulaDSS_setFile(theTriggerElement, theTriggerType, theNameSpaceStr,
             }
         });
     }
+}
+
+/**
+ * multipart/form-data submission, will work cross site but will not have any response
+ * @link http://stackoverflow.com/questions/5938842/cross-domain-ajax-post-in-chrome
+ */
+function nebulaDSS_private_SubmitData(theTriggerElement, theTriggerType, theHostUrlStr,
+    theNameSpaceStr, theFileNameStr,theGroupKey, theFileObjPath) {
+    var aFileSubmitForm = $(document.createElement('form')).hide();
+    var aFileSubmitFormId = theNameSpaceStr + '-' + theFileNameStr;
+    aFileSubmitForm.attr('id', aFileSubmitFormId);
+    aFileSubmitForm.append("<input type='text' name='namespace' value='"+theNameSpaceStr+"' />");
+    aFileSubmitForm.append("<input type='text' name='filename' value='"+theFileNameStr+"' />");
+    aFileSubmitForm.append("<input type='text' name='group-key' value='"+theGroupKey+"' />");
+    aFileSubmitForm.append("<input type='file' name='file' value='"+theFileObjPath+"' />");
+
+    var aSubmitFormOptions = { //form should be all set before options
+        iframe: true,
+        type: 'post',
+        url: theHostUrlStr
+    };
+    aFileSubmitForm.ajaxForm(aSubmitFormOptions);
+
+    aFileSubmitForm.ajaxSubmit(); //will post, but will not be able to see response (when XSS)
+
+    $(theTriggerElement).trigger(theTriggerType, [true, 'data submitted']);
 }
