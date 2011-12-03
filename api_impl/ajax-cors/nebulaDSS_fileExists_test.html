@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="utf-8" />
+        <meta name="viewport" content="width=device-width, minimum-scale=1, maximum-scale=1" />
+
+        <title>nebulaDSS_fileExists</title>
+        <meta name="robots" content="noindex,follow" />
+
+        <script type="text/javascript" src="jquery-1.7.1.min.js"></script>
+        <script type="text/javascript" src="jquery.form.js"></script>
+        <script type="text/javascript" src="nebuladss_api_ajax-cors.js"></script>
+        <script type="text/javascript">
+            $(document).ready(function(){
+                $('#foo').bind('nebulaDSS_fileExists', function(event, param1) {
+                    if (param1) {
+                        alert("file exists");
+                    } else {
+                        alert("no such file");
+                    }
+                });
+                nebulaDSS_fileExists('#foo', 'nebulaDSS_fileExists', 'test-namespace', 'test-file');
+            });
+        </script>
+    </head>
+    <body>
+        <div id="foo"></div>
+    </body>
+</html>

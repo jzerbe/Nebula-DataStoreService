@@ -100,7 +100,7 @@ function nebulaDSS_getFile(theTriggerElement, theTriggerType, theNameSpaceStr, t
  *          alert("upload failed - message = " + param2);
  *      }
  * });
- * nebulaDSS_setFile('#foo', 'nebulaDSS_setFile', 'test-namespace', 'test-file.txt', 500, 0.25, 'myUUIDkey', '/home/user/file');
+ * nebulaDSS_setFile('#foo', 'nebulaDSS_setFile', 500, 0.25, 'test-namespace', 'test-file', 'myUUIDkey', '/home/user/file');
  */
 function nebulaDSS_setFile(theTriggerElement, theTriggerType, theLatencyMax, theBandwidthMin,
     theNameSpaceStr, theFileNameStr, theGroupKey, theFileObjPath) {
@@ -132,15 +132,15 @@ function nebulaDSS_setFile(theTriggerElement, theTriggerType, theLatencyMax, the
 
 /**
  * multipart/form-data submission via 3rd party jQuery form plugin
- * will not have any response - jQuery does not offer CORS support
  * @link http://jquery.malsup.com/form/
- * @link http://stackoverflow.com/questions/5938842/cross-domain-ajax-post-in-chrome
  */
 function nebulaDSS_private_SubmitData(theTriggerElement, theTriggerType, theHostUrlStr,
     theNameSpaceStr, theFileNameStr,theGroupKey, theFileObjPath) {
     var aFileSubmitForm = $(document.createElement('form')).hide();
     var aFileSubmitFormId = theNameSpaceStr + '-' + theFileNameStr;
     aFileSubmitForm.attr('id', aFileSubmitFormId);
+    aFileSubmitForm.attr('ACTION', theHostUrlStr);
+    aFileSubmitForm.attr('METHOD', 'post');
     aFileSubmitForm.append("<input type='text' name='namespace' value='"+theNameSpaceStr+"' />");
     aFileSubmitForm.append("<input type='text' name='filename' value='"+theFileNameStr+"' />");
     aFileSubmitForm.append("<input type='text' name='group-key' value='"+theGroupKey+"' />");
