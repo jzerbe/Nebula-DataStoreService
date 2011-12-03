@@ -77,13 +77,13 @@
         <java-data xmlns="http://www.netbeans.org/ns/freeform-project-java/2">
             <compilation-unit>
                 <package-root>src</package-root>
-                <classpath mode="compile">contrib/jetty-6.1.26/jetty-6.1.26.jar;contrib/jetty-6.1.26/jetty-util-6.1.26.jar;contrib/jetty-6.1.26/servlet-api-2.5-20081211.jar;contrib/springframework/spring-1.2.6.jar;contrib/routing/TomP2P-3.2.11.jar;contrib-src/routing/weupnp-0.1.1-sources.jar;contrib/routing/weupnp-0.1.1.jar;contrib/apache/commons-fileupload-1.2.2.jar;contrib/apache/commons-io-2.1.jar;contrib-src/apache/commons-io-2.1-javadoc.jar;contrib-src/apache/commons-io-2.1-sources.jar</classpath>
+                <classpath mode="compile">contrib/jetty-6.1.26/jetty-6.1.26.jar;contrib/jetty-6.1.26/jetty-util-6.1.26.jar;contrib/jetty-6.1.26/servlet-api-2.5-20081211.jar;contrib/springframework/spring-1.2.6.jar;contrib/apache/commons-fileupload-1.2.2.jar;contrib/apache/commons-io-2.1.jar;contrib-src/apache/commons-io-2.1-javadoc.jar;contrib-src/apache/commons-io-2.1-sources.jar</classpath>
                 <source-level>1.5</source-level>
             </compilation-unit>
             <compilation-unit>
                 <package-root>test</package-root>
                 <unit-tests/>
-                <classpath mode="compile">contrib/junit-4.10.jar;contrib/jetty-6.1.26/jetty-6.1.26.jar;contrib/jetty-6.1.26/jetty-util-6.1.26.jar;contrib/jetty-6.1.26/servlet-api-2.5-20081211.jar;contrib/springframework/spring-1.2.6.jar;contrib/routing/TomP2P-3.2.11.jar;contrib-src/routing/weupnp-0.1.1-sources.jar;contrib/routing/weupnp-0.1.1.jar;src;contrib/apache/commons-fileupload-1.2.2.jar;contrib/apache/commons-io-2.1.jar;contrib-src/apache/commons-io-2.1-javadoc.jar;contrib-src/apache/commons-io-2.1-sources.jar</classpath>
+                <classpath mode="compile">contrib/junit-4.10.jar;contrib/jetty-6.1.26/jetty-6.1.26.jar;contrib/jetty-6.1.26/jetty-util-6.1.26.jar;contrib/jetty-6.1.26/servlet-api-2.5-20081211.jar;contrib/springframework/spring-1.2.6.jar;src;contrib/apache/commons-fileupload-1.2.2.jar;contrib/apache/commons-io-2.1.jar;contrib-src/apache/commons-io-2.1-javadoc.jar;contrib-src/apache/commons-io-2.1-sources.jar</classpath>
                 <source-level>1.5</source-level>
             </compilation-unit>
         </java-data>

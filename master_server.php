@@ -1,5 +1,7 @@
 <?php
 
+header("Access-Control-Allow-Origin: *"); //http://enable-cors.org/#how-php
+
 /**
  * SQLite3 database and table setup
  */
@@ -26,8 +28,8 @@ if (isset($_GET['opt']) && ($_GET['opt'] != '')) {
             if (isset($_GET['redir']) && ($_GET['redir'] != '')) {
                 $i = 0;
                 $aRedirUrl = 'http://' . $aReturnArray[$i]['address'] . ':' . $aReturnArray[$i]['http']
-                . '/files?namespace=' . $aReturnArray[$i]['namespace'] . '&filename='
-                . $aReturnArray[$i]['filename'];
+                        . '/files?namespace=' . $aReturnArray[$i]['namespace'] . '&filename='
+                        . $aReturnArray[$i]['filename'];
                 header("Location: $aRedirUrl");
             } else {
                 for ($i = 0; $i < sizeof($aReturnArray); $i++) {

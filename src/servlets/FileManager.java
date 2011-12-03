@@ -32,6 +32,7 @@ import org.apache.commons.fileupload.servlet.ServletFileUpload;
  */
 public class FileManager extends HttpServlet implements ProgramConstants {
 
+    private static final long serialVersionUID = 42L;
     private File myTmpDir;
 
     public FileManager() {
@@ -67,6 +68,8 @@ public class FileManager extends HttpServlet implements ProgramConstants {
      */
     @Override
     protected void doPost(HttpServletRequest req, HttpServletResponse resp) {
+        resp.addHeader("Access-Control-Allow-Origin", "*"); //http://enable-cors.org/#how-cgi
+
         if (ServletFileUpload.isMultipartContent(req)) {
 
             String namespace = "";
@@ -88,9 +91,16 @@ public class FileManager extends HttpServlet implements ProgramConstants {
                             filename = item.getString();
                         }
                     } else {
-                        File aFile = new File(FileSystemManager.getInstance().getFormattedFilePathStr(
+                        String aNewFilePathStr = FileSystemManager.getInstance().getFormattedFilePathStr(
                                 FileSystemManager.getInstance().getStorageRootPath(),
-                                namespace, filename));
+                                namespace, filename);
+                        File aFile = new File(aNewFilePathStr);
+                        if (aFile.exists()) {
+                            Logger.getLogger(FileManager.class.getName()).log(
+                                    Level.INFO, "file already exists: {0}", aNewFilePathStr);
+                            return; //file already in system - do nothing
+                        }
+
                         if (aFile.exists()) {
                             return; //file already in system - do nothing
                         }
@@ -117,14 +127,17 @@ public class FileManager extends HttpServlet implements ProgramConstants {
                 Logger.getLogger(FileManager.class.getName()).log(Level.WARNING, null, ex);
             }
         } else {
-            System.err.println("Not valid multipart POST "
-                    + req.getParameter("namespace") + "-"
-                    + req.getParameter("filename"));
+            Logger.getLogger(FileManager.class.getName()).log(
+                    Level.WARNING, "Not valid multipart POST {0}-{1}",
+                    new Object[]{req.getParameter("namespace"),
+                        req.getParameter("filename")});
         }
     }
 
     @Override
     protected void doGet(HttpServletRequest req, HttpServletResponse resp) {
+        resp.addHeader("Access-Control-Allow-Origin", "*"); //http://enable-cors.org/#how-cgi
+
         String namespace = req.getParameter("namespace");
         String filename = req.getParameter("filename");
 
