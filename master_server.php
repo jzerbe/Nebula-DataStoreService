@@ -6,14 +6,22 @@ header("Access-Control-Allow-Origin: *"); //http://enable-cors.org/#how-php
  * SQLite3 database and table setup
  */
 $SQLite3_conn = new SQLite3('NebulaDSS.db');
+$SQLite3_conn->exec("PRAGMA foreign_keys = ON");
+
 $aSqlCreateNodeTable = "CREATE TABLE IF NOT EXISTS Nodes "
         . "(id INTEGER PRIMARY KEY ASC, uuid TEXT, "
         . "address TEXT, http INTEGER, online INTEGER)";
 $SQLite3_conn->exec($aSqlCreateNodeTable);
+
 $aSqlCreateFilesTable = "CREATE TABLE IF NOT EXISTS Files "
         . "(id INTEGER PRIMARY KEY ASC, uuid TEXT, "
         . "namespace TEXT, filename TEXT)";
 $SQLite3_conn->exec($aSqlCreateFilesTable);
+
+$aSqlCreateGroupKeyTable = "CREATE TABLE IF NOT EXISTS GroupKeys "
+        . "(id INTEGER PRIMARY KEY ASC, key TEXT, "
+        . "node_id INTEGER, FOREIGN KEY(node_id) REFERENCES Nodes(id))";
+$SQLite3_conn->exec($aSqlCreateGroupKeyTable);
 
 /**
  * the main logic
@@ -25,18 +33,15 @@ if (isset($_GET['opt']) && ($_GET['opt'] != '')) {
     } elseif ($opt == 'get') {
         $aReturnArray = getFileHostRecords($SQLite3_conn, $_GET['namespace'], $_GET['filename']);
         if (sizeof($aReturnArray) > 0) {
-            if (isset($_GET['redir']) && ($_GET['redir'] != '')) {
-                $i = 0;
-                $aRedirUrl = 'http://' . $aReturnArray[$i]['address'] . ':' . $aReturnArray[$i]['http']
+            for ($i = 0; $i < sizeof($aReturnArray); $i++) {
+                $aHostStr = 'http://' . $aReturnArray[$i]['address'] . ':' . $aReturnArray[$i]['http']
                         . '/files?namespace=' . $aReturnArray[$i]['namespace'] . '&filename='
                         . $aReturnArray[$i]['filename'];
-                header("Location: $aRedirUrl");
-            } else {
-                for ($i = 0; $i < sizeof($aReturnArray); $i++) {
-                    echo 'http://' . $aReturnArray[$i]['address'] . ':' . $aReturnArray[$i]['http']
-                    . '/files?namespace=' . $aReturnArray[$i]['namespace'] . '&filename='
-                    . $aReturnArray[$i]['filename'] . "\n";
+                if (isset($_GET['redir']) && ($_GET['redir'] != '')) {
+                    header("Location: $aHostStr");
+                    die(); //paranoid - do not disturb headers
                 }
+                echo $aHostStr . "\n";
             }
         }
     } elseif ($opt == 'latency') {

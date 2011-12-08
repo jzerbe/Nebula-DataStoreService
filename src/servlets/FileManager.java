@@ -83,14 +83,13 @@ public class FileManager extends HttpServlet implements ProgramConstants {
             try {
                 List<FileItem> items = (List<FileItem>) aServletFileUpload.parseRequest(req);
                 for (FileItem item : items) {
-                    if (item.isFormField()) {
+                    if (item.isFormField()) { //string parameter from form
                         if (item.getFieldName().equals("namespace")) {
                             namespace = item.getString();
-                        }
-                        if (item.getFieldName().equals("filename")) {
+                        } else if (item.getFieldName().equals("filename")) {
                             filename = item.getString();
                         }
-                    } else {
+                    } else { //file object/data
                         String aNewFilePathStr = FileSystemManager.getInstance().getFormattedFilePathStr(
                                 FileSystemManager.getInstance().getStorageRootPath(),
                                 namespace, filename);
@@ -128,7 +127,8 @@ public class FileManager extends HttpServlet implements ProgramConstants {
             }
         } else {
             Logger.getLogger(FileManager.class.getName()).log(
-                    Level.WARNING, "Not valid multipart POST {0}-{1}",
+                    Level.WARNING, "Not valid multipart POST with"
+                    + "namespace = '{0}', filename = '{1}'",
                     new Object[]{req.getParameter("namespace"),
                         req.getParameter("filename")});
         }
@@ -157,7 +157,7 @@ public class FileManager extends HttpServlet implements ProgramConstants {
                     Logger.getLogger(FileManager.class.getName()).log(Level.SEVERE, null, ex);
                 }
             }
-        } else {
+        } else { //no params, default ot stats
             try {
                 resp.getWriter().println(
                         "Local FS Available: "
