@@ -1,11 +1,13 @@
 /*
- * this JavaScript library abstracts away the basic HTTP operations to give
- * the developer an easier set of functions to work with
+ * this JavaScript library abstracts away the basic NebulaDSS HTTP operations
+ * to give the developer an easier set of functions to work with
  *
- * requires 1) vanilla jQuery for function triggers 2) jQuery form plugin for setFile
+ * 1) asynchronous triggers are done with vanilla jQuery
  *
- * this works via Cross-Origin Resource Sharing (CORS) [http://enable-cors.org/]
+ * 2) functions require Cross-Origin Resource Sharing (CORS) [http://enable-cors.org/]
  * supported in: Internet Explorer 8+, Firefox 3.5+, Safari 4+, and Chrome
+ *
+ * 3) setFile functionality requires BlobBuilder support [http://caniuse.com/blobbuilder]
  *
  * @author Jason Zerbe
  * @link https://github.com/jzerbe/Nebula-DataStoreService
@@ -46,11 +48,13 @@ function nebulaDSS_fileExists(theTriggerElement, theTriggerType, theNameSpaceStr
 
 /**
  * get the contens of a file stored on the NebulaDSS
+ * function will use XHR2, if it is supported, otherwise degrades gracefully
  *
  * @param theTriggerElement - a valid jQuery dom element: document, "#foo", body
  * @param theTriggerType - a string representation of the trigger handler that has been bound
  * @param theNameSpaceStr
  * @param theFileNameStr
+ * @param theResponseType - XHR2 responseType - "text", "arraybuffer", "blob", or "document"
  *
  * example usage:
  * $('#foo').bind('nebulaDSS_getFile', function(event, param1, param2) {
@@ -58,15 +62,21 @@ function nebulaDSS_fileExists(theTriggerElement, theTriggerType, theNameSpaceStr
  *          alert("file contents = " + param2);
  *      }
  * });
- * nebulaDSS_getFile('#foo', 'nebulaDSS_getFile', 'test-namespace', 'test-file.txt');
+ * nebulaDSS_getFile('#foo', 'nebulaDSS_getFile', 'test-namespace', 'test-file.txt', 'text');
+ *
+ * for more on responseType:
+ * http://www.html5rocks.com/en/tutorials/file/xhr2/#toc-response
  */
-function nebulaDSS_getFile(theTriggerElement, theTriggerType, theNameSpaceStr, theFileNameStr) {
+function nebulaDSS_getFile(theTriggerElement, theTriggerType, theNameSpaceStr, theFileNameStr, theResponseType) {
     var aRequestUrlStr = myControlServerBaseStr + "?opt=get&namespace="
     + theNameSpaceStr + "&filename=" + theFileNameStr + "&redir=true";
     var request = nebulaDSS_private_createCORSRequest("get", aRequestUrlStr);
     if (request){
+        request.responseType = theResponseType;
         request.onload = function(){
-            if (typeof(request.responseText) != "undefined") {
+            if (typeof(request.response) != "undefined") {
+                $(theTriggerElement).trigger(theTriggerType, [true, request.response]);
+            } else if (typeof(request.responseText) != "undefined") {
                 $(theTriggerElement).trigger(theTriggerType, [true, request.responseText]);
             } else {
                 $(theTriggerElement).trigger(theTriggerType, [false, 'no response']);
@@ -131,35 +141,54 @@ function nebulaDSS_setFile(theTriggerElement, theTriggerType, theLatencyMax, the
 }
 
 /**
- * multipart/form-data submission via 3rd party jQuery form plugin
- * @link http://jquery.malsup.com/form/
+ * multipart/form-data submission via CORS and BlobBuilder API
+ *
+ * @param theTriggerElement - a valid jQuery dom element: document, "#foo", body
+ * @param theTriggerType - a string representation of the trigger handler that has been bound
+ * @param theHostUrlStr - what DSS node will we be POSTing to?
+ * @param theNameSpaceStr
+ * @param theFileNameStr
+ * @param theGroupKey - all files with same UUID string should go on same host - SHA1(namespace + filename + time) ?
+ * @param theFileObjPath - the local file path/handle for the multipart upload
+ *
+ * for inspiration see:
+ * http://www.html5rocks.com/en/tutorials/file/xhr2/#toc-send-blob
  */
 function nebulaDSS_private_SubmitData(theTriggerElement, theTriggerType, theHostUrlStr,
     theNameSpaceStr, theFileNameStr,theGroupKey, theFileObjPath) {
-    var aFileSubmitForm = $(document.createElement('form')).hide();
-    var aFileSubmitFormId = theNameSpaceStr + '-' + theFileNameStr;
-    aFileSubmitForm.attr('id', aFileSubmitFormId);
-    aFileSubmitForm.attr('ACTION', theHostUrlStr);
-    aFileSubmitForm.attr('METHOD', 'post');
-    aFileSubmitForm.append("<input type='text' name='namespace' value='"+theNameSpaceStr+"' />");
-    aFileSubmitForm.append("<input type='text' name='filename' value='"+theFileNameStr+"' />");
-    aFileSubmitForm.append("<input type='text' name='group-key' value='"+theGroupKey+"' />");
-    aFileSubmitForm.append("<input type='file' name='file' value='"+theFileObjPath+"' />");
+    var aBlobBuilderSupported = nebulaDSS_private_initBlobBuilderAPI();
+    if (aBlobBuilderSupported) {
+        var aBlobBuilder = new BlobBuilder();
+        aBlobBuilder.append(theFileObjPath);
 
-    var aSubmitFormOptions = { //form should be all set before options
-        iframe: true,
-        type: 'post',
-        url: theHostUrlStr
-    };
-    aFileSubmitForm.ajaxForm(aSubmitFormOptions);
+        var aFormData = new FormData();
+        if (typeof(aFormData) != "undefined") {
+            aFormData.append('namespace', theNameSpaceStr);
+            aFormData.append('filename', theFileNameStr);
+            aFormData.append('group-key', theGroupKey);
+            aFormData.append('file', aBlobBuilder.getBlob('application/octet-stream'));
 
-    aFileSubmitForm.ajaxSubmit(); //will post, but will not be able to see response (when XSS)
-
-    $(theTriggerElement).trigger(theTriggerType, [true, 'data submitted']);
+            var request = nebulaDSS_private_createCORSRequest("post", theHostUrlStr);
+            if (request){
+                request.onload = function(){
+                    $(theTriggerElement).trigger(theTriggerType, [true, 'data submitted']);
+                };
+                request.send(aFormData);
+            } else {
+                $(theTriggerElement).trigger(theTriggerType, [false, 'no xhr object']);
+            }
+        } else {
+            $(theTriggerElement).trigger(theTriggerType, [false, 'FormData API not supported']);
+        }
+    } else {
+        $(theTriggerElement).trigger(theTriggerType, [false, 'BlobBuilder API not supported']);
+    }
 }
 
 /**
  * check to see if there are any server entries in the string
+ * @param theData - data string to check if it contains HTTP server path strings
+ * @return boolean - are there any HTTP path strings in the data?
  */
 function nebulaDSS_private_ServerExists(theData) {
     var aDataStr = new String(theData);
@@ -167,6 +196,12 @@ function nebulaDSS_private_ServerExists(theData) {
 }
 
 /**
+ * create and return a CORS XHR request object
+ *
+ * @param method - "get" or "post"
+ * @param url - the URL to work upon
+ * @return xhr - a valid CORS XHR request object
+ *
  * copied and renamed from:
  * http://www.nczonline.net/blog/2010/05/25/cross-domain-ajax-with-cross-origin-resource-sharing/
  */
@@ -181,4 +216,29 @@ function nebulaDSS_private_createCORSRequest(method, url){
         xhr = null;
     }
     return xhr;
+}
+
+/**
+ * prepare the HTML5 BlobBuilder API for generic use
+ * eliminate need to use specialty DOM refrences
+ *
+ * @return boolean - is the BlobBuilder API supported?
+ *
+ * taken from:
+ * http://msdn.microsoft.com/en-us/library/hh673542(v=vs.85).aspx#blobbuilder
+ */
+function nebulaDSS_private_initBlobBuilderAPI() {
+    if (window.BlobBuilder) {
+    // No change needed - the W3C standard API will be used by default.
+    } else if (window.MSBlobBuilder) {
+        window.BlobBuilder = window.MSBlobBuilder;
+    } else if (window.WebKitBlobBuilder) {
+        window.BlobBuilder = window.WebKitBlobBuilder;
+    } else if (window.MozBlobBuilder) {
+        window.BlobBuilder = window.MozBlobBuilder;
+    } else {
+        return false;
+    }
+
+    return true;
 }

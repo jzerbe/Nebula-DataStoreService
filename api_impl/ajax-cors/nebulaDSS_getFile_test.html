@@ -8,7 +8,6 @@
         <meta name="robots" content="noindex,follow" />
 
         <script type="text/javascript" src="jquery-1.7.1.min.js"></script>
-        <script type="text/javascript" src="jquery.form.js"></script>
         <script type="text/javascript" src="nebuladss_api_ajax-cors.js"></script>
         <script type="text/javascript">
             $(document).ready(function(){
@@ -19,7 +18,7 @@
                         alert("error = " + param2);
                     }
                 });
-                nebulaDSS_getFile('#foo', 'nebulaDSS_getFile', 'test-namespace', 'test-file');
+                nebulaDSS_getFile('#foo', 'nebulaDSS_getFile', 'test-namespace', 'test-file', 'text');
             });
         </script>
     </head>

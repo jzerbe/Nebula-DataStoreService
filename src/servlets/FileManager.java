@@ -117,7 +117,9 @@ public class FileManager extends HttpServlet implements ProgramConstants {
                 return;
             }
 
-            HttpCmdClient.getInstance().putFile(namespace, filename); //log to master server
+            if (!namespace.equals("") && !filename.equals("")) {
+                HttpCmdClient.getInstance().putFile(namespace, filename); //log to master server
+            }
 
             //output success response
             try {
