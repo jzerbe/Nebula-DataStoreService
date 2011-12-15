@@ -69,22 +69,40 @@ function nebulaDSS_fileExists(theTriggerElement, theTriggerType, theNameSpaceStr
  */
 function nebulaDSS_getFile(theTriggerElement, theTriggerType, theNameSpaceStr, theFileNameStr, theResponseType) {
     var aRequestUrlStr = myControlServerBaseStr + "?opt=get&namespace="
-    + theNameSpaceStr + "&filename=" + theFileNameStr + "&redir=true";
-    var request = nebulaDSS_private_createCORSRequest("get", aRequestUrlStr);
-    if (request){
-        request.responseType = theResponseType;
-        request.onload = function(){
-            if (typeof(request.response) != "undefined") {
-                $(theTriggerElement).trigger(theTriggerType, [true, request.response]);
-            } else if (typeof(request.responseText) != "undefined") {
-                $(theTriggerElement).trigger(theTriggerType, [true, request.responseText]);
+    + theNameSpaceStr + "&filename=" + theFileNameStr;
+    var aMasterServerRequest = nebulaDSS_private_createCORSRequest("get", aRequestUrlStr);
+    if (aMasterServerRequest){
+        aMasterServerRequest.onload = function(){
+            var data = aMasterServerRequest.responseText;
+            if (nebulaDSS_private_ServerExists(data)) {
+                var aHostUrlStrArray = data.split(/\r\n|\r|\n/);
+                if (aHostUrlStrArray.length > 0) { //grab data from the first host (if exists)
+                    var aDataRequest = nebulaDSS_private_createCORSRequest("get", aHostUrlStrArray[0]);
+                    if (aDataRequest){
+                        aDataRequest.responseType = theResponseType;
+                        aDataRequest.onload = function(){
+                            if (typeof(aDataRequest.response) != "undefined") {
+                                $(theTriggerElement).trigger(theTriggerType, [true, aDataRequest.response]);
+                            } else if (typeof(aDataRequest.responseText) != "undefined") {
+                                $(theTriggerElement).trigger(theTriggerType, [true, aDataRequest.responseText]);
+                            } else {
+                                $(theTriggerElement).trigger(theTriggerType, [false, 'no data response']);
+                            }
+                        };
+                        aDataRequest.send();
+                    } else {
+                        $(theTriggerElement).trigger(theTriggerType, [false, 'no xhr object for data request']);
+                    }
+                } else {
+                    $(theTriggerElement).trigger(theTriggerType, [false, 'malformed host information']);
+                }
             } else {
-                $(theTriggerElement).trigger(theTriggerType, [false, 'no response']);
+                $(theTriggerElement).trigger(theTriggerType, [false, 'no matching data hosts']);
             }
         };
-        request.send();
+        aMasterServerRequest.send();
     } else {
-        $(theTriggerElement).trigger(theTriggerType, [false, 'no xhr object']);
+        $(theTriggerElement).trigger(theTriggerType, [false, 'no xhr object for master server request']);
     }
 }
 
@@ -97,8 +115,8 @@ function nebulaDSS_getFile(theTriggerElement, theTriggerType, theNameSpaceStr, t
  * @param theBandwidthMin - float value of least bandwidth for hosts used
  * @param theNameSpaceStr
  * @param theFileNameStr
- * @param theGroupKey - all files with same UUID string should go on same host - SHA1(namespace + filename + time) ?
- * @param theFileObjPath - the local file path/handle for the multipart upload
+ * @param theGroupKey - all files with same UUID string should go on same host - SHA1(namespace + filename + time)
+ * @param theFileObjContents - the actual file contents to push to the DSS
  *
  * for SHA1 output equivalent to php/python --> http://phpjs.org/functions/sha1:512
  *
@@ -113,7 +131,7 @@ function nebulaDSS_getFile(theTriggerElement, theTriggerType, theNameSpaceStr, t
  * nebulaDSS_setFile('#foo', 'nebulaDSS_setFile', 500, 0.25, 'test-namespace', 'test-file', 'myUUIDkey', '/home/user/file');
  */
 function nebulaDSS_setFile(theTriggerElement, theTriggerType, theLatencyMax, theBandwidthMin,
-    theNameSpaceStr, theFileNameStr, theGroupKey, theFileObjPath) {
+    theNameSpaceStr, theFileNameStr, theGroupKey, theFileObjContents) {
     var aRequestUrlStr = myControlServerBaseStr + "?opt=online"
     + "&latency_max=" + theLatencyMax + "&bandwidth_min=" + theBandwidthMin
     + "&group_key=" + theGroupKey;
@@ -126,7 +144,7 @@ function nebulaDSS_setFile(theTriggerElement, theTriggerType, theLatencyMax, the
                 if (aHostUrlStrArray.length > 0) {
                     nebulaDSS_private_SubmitData(theTriggerElement, theTriggerType,
                         aHostUrlStrArray[0], theNameSpaceStr, theFileNameStr,
-                        theGroupKey, theFileObjPath);
+                        theFileObjContents);
                 } else {
                     $(theTriggerElement).trigger(theTriggerType, [false, 'malformed host information']);
                 }
@@ -148,24 +166,22 @@ function nebulaDSS_setFile(theTriggerElement, theTriggerType, theLatencyMax, the
  * @param theHostUrlStr - what DSS node will we be POSTing to?
  * @param theNameSpaceStr
  * @param theFileNameStr
- * @param theGroupKey - all files with same UUID string should go on same host - SHA1(namespace + filename + time) ?
- * @param theFileObjPath - the local file path/handle for the multipart upload
+ * @param theFileObjContents - the actual file contents to push to the DSS
  *
  * for inspiration see:
  * http://www.html5rocks.com/en/tutorials/file/xhr2/#toc-send-blob
  */
 function nebulaDSS_private_SubmitData(theTriggerElement, theTriggerType, theHostUrlStr,
-    theNameSpaceStr, theFileNameStr,theGroupKey, theFileObjPath) {
+    theNameSpaceStr, theFileNameStr, theFileObjContents) {
     var aBlobBuilderSupported = nebulaDSS_private_initBlobBuilderAPI();
     if (aBlobBuilderSupported) {
         var aBlobBuilder = new BlobBuilder();
-        aBlobBuilder.append(theFileObjPath);
+        aBlobBuilder.append(theFileObjContents);
 
         var aFormData = new FormData();
         if (typeof(aFormData) != "undefined") {
             aFormData.append('namespace', theNameSpaceStr);
             aFormData.append('filename', theFileNameStr);
-            aFormData.append('group-key', theGroupKey);
             aFormData.append('file', aBlobBuilder.getBlob('application/octet-stream'));
 
             var request = nebulaDSS_private_createCORSRequest("post", theHostUrlStr);

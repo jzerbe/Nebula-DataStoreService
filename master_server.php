@@ -6,22 +6,34 @@ header("Access-Control-Allow-Origin: *"); //http://enable-cors.org/#how-php
  * SQLite3 database and table setup
  */
 $SQLite3_conn = new SQLite3('NebulaDSS.db');
-$SQLite3_conn->exec("PRAGMA foreign_keys = ON");
+$aSqlBoolRet = $SQLite3_conn->exec("PRAGMA foreign_keys = ON");
+if (!$aSqlBoolRet) {
+    die($SQLite3_conn->lastErrorMsg);
+}
 
 $aSqlCreateNodeTable = "CREATE TABLE IF NOT EXISTS Nodes "
         . "(id INTEGER PRIMARY KEY ASC, uuid TEXT, "
         . "address TEXT, http INTEGER, online INTEGER)";
-$SQLite3_conn->exec($aSqlCreateNodeTable);
+$aSqlBoolRet = $SQLite3_conn->exec($aSqlCreateNodeTable);
+if (!$aSqlBoolRet) {
+    die($SQLite3_conn->lastErrorMsg);
+}
 
 $aSqlCreateFilesTable = "CREATE TABLE IF NOT EXISTS Files "
         . "(id INTEGER PRIMARY KEY ASC, uuid TEXT, "
         . "namespace TEXT, filename TEXT)";
-$SQLite3_conn->exec($aSqlCreateFilesTable);
+$aSqlBoolRet = $SQLite3_conn->exec($aSqlCreateFilesTable);
+if (!$aSqlBoolRet) {
+    die($SQLite3_conn->lastErrorMsg);
+}
 
 $aSqlCreateGroupKeyTable = "CREATE TABLE IF NOT EXISTS GroupKeys "
         . "(id INTEGER PRIMARY KEY ASC, key TEXT, "
         . "node_id INTEGER, FOREIGN KEY(node_id) REFERENCES Nodes(id))";
-$SQLite3_conn->exec($aSqlCreateGroupKeyTable);
+$aSqlBoolRet = $SQLite3_conn->exec($aSqlCreateGroupKeyTable);
+if (!$aSqlBoolRet) {
+    die($SQLite3_conn->lastErrorMsg);
+}
 
 /**
  * the main logic
@@ -32,14 +44,14 @@ if (isset($_GET['opt']) && ($_GET['opt'] != '')) {
         echo 'address=' . $_SERVER["REMOTE_ADDR"] . "\n";
     } elseif ($opt == 'get') {
         $aReturnArray = getFileHostRecords($SQLite3_conn, $_GET['namespace'], $_GET['filename']);
-        if (sizeof($aReturnArray) > 0) {
+        if ($aReturnArray && (sizeof($aReturnArray) > 0)) {
             for ($i = 0; $i < sizeof($aReturnArray); $i++) {
                 $aHostStr = 'http://' . $aReturnArray[$i]['address'] . ':' . $aReturnArray[$i]['http']
                         . '/files?namespace=' . $aReturnArray[$i]['namespace'] . '&filename='
                         . $aReturnArray[$i]['filename'];
                 if (isset($_GET['redir']) && ($_GET['redir'] != '')) {
                     header("Location: $aHostStr");
-                    die(); //paranoid - do not disturb headers
+                    die(); //paranoid coding - do not want disturb headers
                 }
                 echo $aHostStr . "\n";
             }
@@ -54,9 +66,11 @@ if (isset($_GET['opt']) && ($_GET['opt'] != '')) {
         }
     } elseif ($opt == 'online') {
         $aReturnArray = getNodesOnline($SQLite3_conn);
-        for ($i = 0; $i < sizeof($aReturnArray); $i++) {
-            echo 'http://' . $aReturnArray[$i]['address'] . ':' . $aReturnArray[$i]['http']
-            . "/files\n";
+        if ($aReturnArray) {
+            for ($i = 0; $i < sizeof($aReturnArray); $i++) {
+                echo 'http://' . $aReturnArray[$i]['address'] . ':' . $aReturnArray[$i]['http']
+                . "/files\n";
+            }
         }
     } elseif ($opt == 'ping') {
         if (isset($_GET['remove']) && ($_GET['remove'] != '')) {
@@ -79,6 +93,10 @@ if (isset($_GET['opt']) && ($_GET['opt'] != '')) {
  * @param string $theFileName
  */
 function addFileRecord($SQLite3_conn, $theUUID, $theNameSpace, $theFileName) {
+    $theUUID = filterSqlVariable($theUUID);
+    $theNameSpace = filterSqlVariable($theNameSpace);
+    $theFileName = filterSqlVariable($theFileName);
+
     $aResultCount = $SQLite3_conn->querySingle("SELECT COUNT(*) FROM Files "
             . "WHERE uuid='$theUUID' AND namespace='$theNameSpace' AND "
             . "filename='$theFileName'");
@@ -97,6 +115,9 @@ function addFileRecord($SQLite3_conn, $theUUID, $theNameSpace, $theFileName) {
  * @return array
  */
 function getFileHostRecords($SQLite3_conn, $theNameSpace, $theFileName) {
+    $theNameSpace = filterSqlVariable($theNameSpace);
+    $theFileName = filterSqlVariable($theFileName);
+
     $aSqlJoinSearch = "SELECT Files.uuid, Nodes.address, "
             . "Nodes.http, Files.namespace, "
             . "Files.filename FROM Files, Nodes "
@@ -105,6 +126,9 @@ function getFileHostRecords($SQLite3_conn, $theNameSpace, $theFileName) {
             . "Files.filename = '$theFileName' AND "
             . "Nodes.online = 1 LIMIT 20";
     $results = $SQLite3_conn->query($aSqlJoinSearch);
+    if (!$results) {
+        return false;
+    }
 
     $i = 0;
     while ($row = $results->fetchArray(SQLITE3_ASSOC)) {
@@ -127,6 +151,9 @@ function getFileHostRecords($SQLite3_conn, $theNameSpace, $theFileName) {
 function getNodesOnline($SQLite3_conn) {
     $results = $SQLite3_conn->query("SELECT uuid, address, http FROM Nodes "
             . "WHERE online=1");
+    if (!$results) {
+        return false;
+    }
 
     $i = 0;
     while ($row = $results->fetchArray(SQLITE3_ASSOC)) {
@@ -146,6 +173,8 @@ function getNodesOnline($SQLite3_conn) {
  * @return boolean - is the node with $theUUID available?
  */
 function getNodeIsOnline($SQLite3_conn, $theUUID) {
+    $theUUID = filterSqlVariable($theUUID);
+
     $aResultCount = $SQLite3_conn->querySingle("SELECT COUNT(*) FROM Nodes "
             . "WHERE uuid='$theUUID' AND online=1");
     if ($aResultCount == 1) {
@@ -164,16 +193,20 @@ function getNodeIsOnline($SQLite3_conn, $theUUID) {
  * @return boolean - did the set work?
  */
 function setNodeIsOnline($SQLite3_conn, $theUUID, $theAddress, $theWebPort) {
+    $theUUID = filterSqlVariable($theUUID);
+    if (!filter_var($theAddress, FILTER_VALIDATE_IP)) {
+        return false; //http://www.w3schools.com/php/filter_validate_ip.asp
+    }
+    $theWebPort = filterSqlVariable($theWebPort);
+
     $aResultCount = $SQLite3_conn->querySingle("SELECT COUNT(*) FROM Nodes "
             . "WHERE uuid='$theUUID'");
     if ($aResultCount == 0) {
-        $SQLite3_conn->exec("INSERT INTO Nodes VALUES(NULL, '$theUUID', "
-                . "'$theAddress', '$theWebPort', 1)");
-        return true;
+        return ($SQLite3_conn->exec("INSERT INTO Nodes VALUES(NULL, '$theUUID', "
+                . "'$theAddress', '$theWebPort', 1)"));
     } elseif ($aResultCount == 1) {
-        $SQLite3_conn->exec("UPDATE Nodes SET address='$theAddress', "
-                . "http='$theWebPort', online=1 WHERE uuid='$theUUID'");
-        return true;
+        return ($SQLite3_conn->exec("UPDATE Nodes SET address='$theAddress', "
+                . "http='$theWebPort', online=1 WHERE uuid='$theUUID'"));
     } else {
         return false;
     }
@@ -186,14 +219,23 @@ function setNodeIsOnline($SQLite3_conn, $theUUID, $theAddress, $theWebPort) {
  * @return boolean - did everything work properly?
  */
 function setNodeIsOffline($SQLite3_conn, $theUUID) {
+    $theUUID = filterSqlVariable($theUUID);
+
     $aResultCount = $SQLite3_conn->querySingle("SELECT COUNT(*) FROM Nodes "
             . "WHERE uuid='$theUUID'");
     if ($aResultCount == 1) {
-        $SQLite3_conn->exec("UPDATE Nodes SET online=0 WHERE uuid='$theUUID'");
-        return true;
+        return ($SQLite3_conn->exec("UPDATE Nodes SET online=0 WHERE uuid='$theUUID'"));
     } else {
         return false;
     }
+}
+
+/**
+ * minimal SQL filtering function to foil stupid attackers
+ * only allows periods, dashes, and alphanumeric characters
+ */
+function filterSqlVariable($theDataVariable) {
+    return (ereg_replace("[^A-Za-z0-9.-]", "", $theDataVariable));
 }
 
 ?>

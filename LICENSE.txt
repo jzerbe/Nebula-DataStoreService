@@ -13,11 +13,11 @@ this list of conditions and the following disclaimer in the documentation
 and/or other materials provided with the distribution.
 
 3rd Party Code/Library License NOTES
+AeSimpleSHA1 = similar to BSD [http://www.anyexample.com/license/]
 Apache Commons IO = Apache v2.0 [http://commons.apache.org/io/license.html]
 Jetty = Apache v2.0 [http://jetty.codehaus.org/jetty/license.html]
 JUnit = Common Public v1.0 [http://junit.sourceforge.net/cpl-v10.html]
 Spring Framework = Apache v2.0 [http://www.apache.org/licenses/LICENSE-2.0.html]
-weupnp = LGPL [http://www.gnu.org/licenses/lgpl.html]
 
 THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
 ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED

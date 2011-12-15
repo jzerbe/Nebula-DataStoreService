@@ -72,64 +72,85 @@ public class FileManager extends HttpServlet implements ProgramConstants {
 
         if (ServletFileUpload.isMultipartContent(req)) {
 
-            String namespace = "";
-            String filename = "";
+            String namespace = null;
+            String filename = null;
+            FileItem file = null;
 
             DiskFileItemFactory aDiskFileItemFactory = new DiskFileItemFactory();
             aDiskFileItemFactory.setSizeThreshold(1 * 1024 * 1024); //copy to disk if >1MB
             aDiskFileItemFactory.setRepository(myTmpDir); //storing files above threshold
             ServletFileUpload aServletFileUpload = new ServletFileUpload(aDiskFileItemFactory);
 
+            //get multipart post parameters
+            List<FileItem> items = null;
             try {
-                List<FileItem> items = (List<FileItem>) aServletFileUpload.parseRequest(req);
-                for (FileItem item : items) {
-                    if (item.isFormField()) { //string parameter from form
-                        if (item.getFieldName().equals("namespace")) {
-                            namespace = item.getString();
-                        } else if (item.getFieldName().equals("filename")) {
-                            filename = item.getString();
-                        }
-                    } else { //file object/data
-                        String aNewFilePathStr = FileSystemManager.getInstance().getFormattedFilePathStr(
-                                FileSystemManager.getInstance().getStorageRootPath(),
-                                namespace, filename);
-                        File aFile = new File(aNewFilePathStr);
-                        if (aFile.exists()) {
+                items = (List<FileItem>) aServletFileUpload.parseRequest(req);
+            } catch (FileUploadException ex) {
+                Logger.getLogger(FileManager.class.getName()).log(Level.SEVERE, null, ex);
+                return;
+            }
+            for (FileItem item : items) {
+                if (item.isFormField()) {
+                    if (item.getFieldName().equals("namespace")) {
+                        namespace = item.getString();
+                    } else if (item.getFieldName().equals("filename")) {
+                        filename = item.getString();
+                    }
+                } else {
+                    file = item;
+                }
+            }
+
+            //check to make sure we have all the parameters
+            if (((namespace != null) && !namespace.equals(""))
+                    && ((filename != null) && !filename.equals(""))
+                    && (file != null)) {
+
+                //setup filesystem path
+                String aNewFilePathStr = FileSystemManager.getInstance().getFormattedFilePathStr(
+                        FileSystemManager.getInstance().getStorageRootPath(),
+                        namespace, filename);
+                File aFile = new File(aNewFilePathStr);
+                if (aFile.exists()) {
+                    Logger.getLogger(FileManager.class.getName()).log(
+                            Level.INFO, "file already exists: {0}", aNewFilePathStr);
+                    return; //file already in system - die
+                }
+
+                //write to filesystem
+                try {
+                    file.write(aFile);
+                } catch (Exception ex) {
+                    Logger.getLogger(FileManager.class.getName()).log(
+                            Level.SEVERE, "Error trying to write to filesystem", ex);
+                    return;
+                }
+
+                //log to master server - be persistent
+                boolean loggedToMasterServer = false;
+                while (!loggedToMasterServer) {
+                    loggedToMasterServer = HttpCmdClient.getInstance().putFile(namespace, filename);
+                    if (!loggedToMasterServer) {
+                        try {
+                            Thread.sleep((1 * 1000)); //sleep in milliseconds
+                        } catch (InterruptedException ex) {
                             Logger.getLogger(FileManager.class.getName()).log(
-                                    Level.INFO, "file already exists: {0}", aNewFilePathStr);
-                            return; //file already in system - do nothing
+                                    Level.WARNING, null, ex);
                         }
-
-                        if (aFile.exists()) {
-                            return; //file already in system - do nothing
-                        }
-
-                        item.write(aFile);
                     }
                 }
-            } catch (FileUploadException ex) {
-                Logger.getLogger(FileManager.class.getName()).log(
-                        Level.SEVERE, "Error encountered while parsing the request", ex);
-                return;
-            } catch (Exception ex) {
-                Logger.getLogger(FileManager.class.getName()).log(
-                        Level.SEVERE, "Error encountered while uploading file", ex);
-                return;
-            }
 
-            if (!namespace.equals("") && !filename.equals("")) {
-                HttpCmdClient.getInstance().putFile(namespace, filename); //log to master server
-            }
-
-            //output success response
-            try {
-                resp.getWriter().println("Saved: " + namespace + "-" + filename);
-            } catch (IOException ex) {
-                Logger.getLogger(FileManager.class.getName()).log(Level.WARNING, null, ex);
+                //output success response
+                try {
+                    resp.getWriter().println("Saved: namespace = '" + namespace
+                            + "', filename = '" + filename + "'");
+                } catch (IOException ex) {
+                    Logger.getLogger(FileManager.class.getName()).log(Level.WARNING, null, ex);
+                }
             }
         } else {
             Logger.getLogger(FileManager.class.getName()).log(
-                    Level.WARNING, "Not valid multipart POST with"
+                    Level.WARNING, "Not valid multipart POST "
                     + "namespace = '{0}', filename = '{1}'",
                     new Object[]{req.getParameter("namespace"),
                         req.getParameter("filename")});

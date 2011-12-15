@@ -75,8 +75,7 @@ public class HttpCmdClient implements ProgramConstants {
     }
 
     /**
-     * tell the master server that this node has the certain file. if the file
-     * is new then it needs to be timestamped to differentiated between the versions
+     * tell the master server that this node has the certain file
      * @param theNameSpace String
      * @param theFileName String
      * @return boolean - did contacting the master server work?
